@@ -1,0 +1,12 @@
+node_modules/
+package-lock.json
+__pycache__/
+*.pyc
+out/
+tmp/
+归档/
+*.docx
+*.pdf
+NotoSerifSC.otf
+.DS_Store
+Thumbs.db

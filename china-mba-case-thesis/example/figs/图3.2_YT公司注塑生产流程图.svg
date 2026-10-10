@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="420" viewBox="0 0 1500 420" font-family="'Noto Serif CJK SC','Source Han Serif SC','Songti SC','SimSun',serif"><defs><marker id="ah262626" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="16" markerHeight="16" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#262626"/></marker><marker id="as262626" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="16" markerHeight="16" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#262626"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><rect x="135.0" y="75.0" width="190.0" height="90.0" rx="0" fill="#ffffff" stroke="#262626" stroke-width="2"/>
+<text x="230.0" y="120.0" font-size="26" text-anchor="middle" dominant-baseline="central" fill="#1a1a1a" font-weight="normal">原料干燥</text>
+<rect x="395.0" y="75.0" width="190.0" height="90.0" rx="0" fill="#dbe7f3" stroke="#262626" stroke-width="2"/>
+<text x="490.0" y="120.0" font-size="26" text-anchor="middle" dominant-baseline="central" fill="#1a1a1a" font-weight="normal">注塑成型</text>
+<path d="M 329.0 120.0 L 391.0 120.0" fill="none" stroke="#262626" stroke-width="2" marker-end="url(#ah262626)"/>
+<rect x="655.0" y="75.0" width="190.0" height="90.0" rx="0" fill="#ffffff" stroke="#262626" stroke-width="2"/>
+<text x="750.0" y="120.0" font-size="26" text-anchor="middle" dominant-baseline="central" fill="#1a1a1a" font-weight="normal">去浇口</text>
+<path d="M 589.0 120.0 L 651.0 120.0" fill="none" stroke="#262626" stroke-width="2" marker-end="url(#ah262626)"/>
+<rect x="915.0" y="75.0" width="190.0" height="90.0" rx="0" fill="#ffffff" stroke="#262626" stroke-width="2"/>
+<text x="1010.0" y="120.0" font-size="26" text-anchor="middle" dominant-baseline="central" fill="#1a1a1a" font-weight="normal">检验</text>
+<path d="M 849.0 120.0 L 911.0 120.0" fill="none" stroke="#262626" stroke-width="2" marker-end="url(#ah262626)"/>
+<rect x="1175.0" y="75.0" width="190.0" height="90.0" rx="0" fill="#ffffff" stroke="#262626" stroke-width="2"/>
+<text x="1270.0" y="120.0" font-size="26" text-anchor="middle" dominant-baseline="central" fill="#1a1a1a" font-weight="normal">包装入库</text>
+<path d="M 1109.0 120.0 L 1171.0 120.0" fill="none" stroke="#262626" stroke-width="2" marker-end="url(#ah262626)"/>
+<rect x="655.0" y="252.0" width="190.0" height="76.0" rx="0" fill="#ffffff" stroke="#262626" stroke-width="2"/>
+<text x="750.0" y="290.0" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#1a1a1a" font-weight="normal">喷涂</text>
+<rect x="915.0" y="252.0" width="190.0" height="76.0" rx="0" fill="#ffffff" stroke="#262626" stroke-width="2"/>
+<text x="1010.0" y="290.0" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#1a1a1a" font-weight="normal">组装（嵌件）</text>
+<path d="M 750.0 167.0 L 750.0 250.0" fill="none" stroke="#262626" stroke-width="2" marker-end="url(#ah262626)"/>
+<path d="M 847.0 290.0 L 913.0 290.0" fill="none" stroke="#262626" stroke-width="2" marker-end="url(#ah262626)"/>
+<path d="M 1010.0 250.0 L 1010.0 167.0" fill="none" stroke="#262626" stroke-width="2" marker-end="url(#ah262626)"/>
+<text x="880.0" y="350.0" font-size="20" text-anchor="middle" dominant-baseline="central" fill="#595959" font-weight="normal">喷涂件 / 组装件走分支，本色件直接检验</text>
+<rect x="395.0" y="252.0" width="190.0" height="76.0" rx="0" fill="#f2f2f2" stroke="#262626" stroke-width="2" stroke-dasharray="10,6"/>
+<text x="490.0" y="290.0" font-size="22" text-anchor="middle" dominant-baseline="central" fill="#1a1a1a" font-weight="normal">模具维修（外协）</text>
+<path d="M 490.0 250.0 L 490.0 167.0" fill="none" stroke="#262626" stroke-width="2" stroke-dasharray="10,6" marker-end="url(#ah262626)" marker-start="url(#as262626)"/></svg>
