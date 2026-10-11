@@ -1,0 +1,228 @@
+{
+  "_说明": "复制一份改成自己的。路径相对本配置文件所在目录。字号可写中文“号”（如“小四”）或半磅数值。下面的格式值只是常见取值的示意，不对应任何一所学校的规范，请按本校规范逐项核对后修改。",
+  "paths": {
+    "src": "../../example/src",
+    "img": "../../example/figs",
+    "out": "../../tmp/示例.docx"
+  },
+  "files": {
+    "abstract": "摘要.md",
+    "chapterPattern": "^第\\d+章",
+    "references": "参考文献.md"
+  },
+  "extraFrontFiles": [],
+  "page": {
+    "widthTw": 11906,
+    "heightTw": 16838,
+    "marginTw": {
+      "top": 1440,
+      "bottom": 1440,
+      "left": 1797,
+      "right": 1797,
+      "header": 851,
+      "footer": 992
+    }
+  },
+  "fonts": {
+    "latin": "Times New Roman",
+    "song": "宋体",
+    "hei": "黑体",
+    "kai": "楷体",
+    "coverLatin": "Arial"
+  },
+  "body": {
+    "size": "小四",
+    "lineSpacing": 1.5,
+    "firstLineChars": 2
+  },
+  "headings": [
+    {
+      "size": "三号",
+      "bold": true,
+      "align": "center",
+      "font": "song"
+    },
+    {
+      "size": "四号",
+      "bold": true,
+      "align": "left",
+      "font": "song"
+    },
+    {
+      "size": "小四",
+      "bold": true,
+      "align": "left",
+      "font": "song"
+    }
+  ],
+  "captions": {
+    "font": "hei",
+    "size": "小四",
+    "bold": false
+  },
+  "table": {
+    "size": "五号",
+    "noteSize": "五号",
+    "boldHeader": true,
+    "outerRule8ths": 12,
+    "headRule8ths": 6
+  },
+  "figures": {
+    "filePrefix": "图",
+    "defaultWidthCm": 14.5,
+    "maxHeightPx": 780,
+    "widthsPx": {},
+    "notes": {}
+  },
+  "noteMarkers": [
+    "资料来源",
+    "注"
+  ],
+  "cutSectionPattern": "^##\\s*(本章待|待补)",
+  "header": {
+    "enabled": true,
+    "font": "song",
+    "size": "小五",
+    "align": "center",
+    "borderBottom": true
+  },
+  "footer": {
+    "align": "right",
+    "size": "小五"
+  },
+  "pageNumbers": {
+    "front": "upperRoman",
+    "body": "decimal"
+  },
+  "toc": {
+    "title": "目　　录",
+    "titleSize": "三号",
+    "entrySize": "四号",
+    "levels": "1-3",
+    "indentChars": 1
+  },
+  "abstract": {
+    "zhHead": "摘　　要",
+    "enHead": "Abstract",
+    "headSize": "三号",
+    "titleSize": "四号"
+  },
+  "referencesTitle": "参考文献",
+  "referencesSize": "五号",
+  "cover": {
+    "enabled": true,
+    "layout": [
+      {
+        "pair": [
+          "分  类  号：XXXX",
+          "单位代码：XXXXX"
+        ],
+        "bold": true
+      },
+      {
+        "pair": [
+          "研究生学号：XXXXXXXXXX",
+          "密    级：公 开"
+        ],
+        "bold": true
+      },
+      {
+        "blank": 1
+      },
+      {
+        "_注": "有校徽时取消下一行的注释键名：把 _image 改成 image",
+        "_image": "emblem.jpeg",
+        "px": 113
+      },
+      {
+        "blank": 1
+      },
+      {
+        "text": "× × 大 学",
+        "size": "一号",
+        "bold": true,
+        "after": 200
+      },
+      {
+        "text": "硕士学位论文",
+        "size": "二号",
+        "bold": true,
+        "after": 120
+      },
+      {
+        "text": "（专业学位）",
+        "size": "三号",
+        "bold": true
+      },
+      {
+        "blank": 2
+      },
+      {
+        "text": "论文中文题目",
+        "font": "hei",
+        "size": "三号",
+        "after": 240
+      },
+      {
+        "text": "English Title of the Thesis",
+        "font": "coverLatin",
+        "size": "小三"
+      },
+      {
+        "blank": 2
+      },
+      {
+        "info": [
+          "作 者 姓 名：",
+          "某 某"
+        ],
+        "size": "三号",
+        "bold": true
+      },
+      {
+        "info": [
+          "类　　　别：",
+          "工商管理硕士"
+        ],
+        "size": "三号",
+        "bold": true
+      },
+      {
+        "info": [
+          "领域(方向)：",
+          "××××"
+        ],
+        "size": "三号",
+        "bold": true
+      },
+      {
+        "info": [
+          "指 导 教 师：",
+          "某某　教授"
+        ],
+        "size": "三号",
+        "bold": true
+      },
+      {
+        "info": [
+          "培 养 单 位：",
+          "某某学院"
+        ],
+        "size": "三号",
+        "bold": true
+      },
+      {
+        "blank": 1
+      },
+      {
+        "text": "　　　　年　　月",
+        "size": "三号",
+        "bold": true
+      }
+    ]
+  },
+  "titlePage": {
+    "enabled": false,
+    "layout": []
+  }
+}
