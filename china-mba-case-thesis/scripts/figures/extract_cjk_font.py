@@ -5,6 +5,7 @@ matplotlib 读 .ttc 时常常选错语言版本，导致中文缺字或用成日
 """
 import sys, glob
 from fontTools.ttLib import TTCollection
+sys.stdout.reconfigure(encoding='utf-8'); sys.stderr.reconfigure(encoding='utf-8')   # Windows 下输出被重定向时默认编码不是 UTF-8，打印中文会报错
 
 src = sys.argv[1] if len(sys.argv) > 1 else None
 if not src:

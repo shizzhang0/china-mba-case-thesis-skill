@@ -280,4 +280,4 @@ const doc = new Document({
   },
   sections,
 });
-Packer.toBuffer(doc).then(b => { fs.writeFileSync(OUT, b); console.log('已生成', OUT, '章数', chapters.length, '大小', b.length); });
+Packer.toBuffer(doc).then(b => { fs.mkdirSync(path.dirname(path.resolve(OUT)), { recursive: true }); fs.writeFileSync(OUT, b);console.log('已生成', OUT, '章数', chapters.length, '大小', b.length); });

@@ -4,23 +4,29 @@
 依赖：pdftotext（poppler）。没有的话 pip install pdfminer.six 也行（慢一些）。
 统计是下限估计：跨行的图题可能漏计；目录解析依赖“第N章”“N.N”这类常见格式。
 """
-import sys, os, re, subprocess, argparse, shutil
+import sys, os, re, subprocess, argparse, shutil, tempfile
 from collections import Counter
+sys.stdout.reconfigure(encoding='utf-8'); sys.stderr.reconfigure(encoding='utf-8')   # Windows 下输出被重定向时默认编码不是 UTF-8，打印中文会报错
 
 DEFAULT_KW = ['架构图', '数据库', 'E-R', 'UML', '用例', '开发环境', '微服务', '算法', '问卷', '访谈', '流程图', '对策', '保障措施', '预期效果']
 
 
 def pdf_text(path):
     if shutil.which('pdftotext'):
-        r = subprocess.run(['pdftotext', '-layout', path, '-'], capture_output=True)
-        return r.stdout.decode('utf-8', 'ignore')
+        # -enc UTF-8：xpdf 版 pdftotext 默认按 Latin1 输出，中文会丢；有的版本打不开中文路径，先复制成临时文件
+        with tempfile.TemporaryDirectory() as d:
+            tmp = os.path.join(d, 'in.pdf'); shutil.copyfile(path, tmp)
+            r = subprocess.run(['pdftotext', '-enc', 'UTF-8', '-layout', tmp, '-'], capture_output=True)
+        if r.returncode == 0:
+            return r.stdout.decode('utf-8', 'ignore')
+        print('pdftotext 失败，改用 pdfminer：', r.stderr.decode('utf-8', 'ignore').strip()[:200], file=sys.stderr)
     from pdfminer.high_level import extract_text
     return extract_text(path)
 
 
 def analyze(path, kws):
     t = pdf_text(path)
-    pages = t.count('\f') + 1
+    pages = t.count('\f') + (0 if t.rstrip('\r\n ').endswith('\f') else 1)   # 每页末尾各有一个分页符
     # 只认“第N章 标题”的目录/标题形式（阿拉伯数字），正文里“第一章是绪论”这类叙述不算
     chapters = re.findall(r'^\s*第\s*(\d+)\s*章\s*([^\n]{2,40})', t, re.M)
     seen, chap = set(), []
@@ -50,6 +56,8 @@ def main():
             if fn.lower().endswith('.pdf'):
                 try:
                     r = analyze(os.path.join(dp, fn), kws); r['name'] = fn[:-4]; r['group'] = group; rows.append(r)
+                    if r['cn_chars'] == 0:
+                        print('警告', fn, '提取不到汉字（扫描版 PDF？），这一行的统计不可用', file=sys.stderr)
                 except Exception as e:
                     print('跳过', fn, e, file=sys.stderr)
     if not rows:

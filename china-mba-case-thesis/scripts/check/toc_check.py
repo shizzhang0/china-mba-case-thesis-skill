@@ -8,6 +8,7 @@
 """
 import sys, re, zipfile
 import xml.etree.ElementTree as ET
+sys.stdout.reconfigure(encoding='utf-8'); sys.stderr.reconfigure(encoding='utf-8')   # Windows 下输出被重定向时默认编码不是 UTF-8，打印中文会报错
 
 W = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
 norm = lambda s: re.sub(r'\s+', '', s or '')

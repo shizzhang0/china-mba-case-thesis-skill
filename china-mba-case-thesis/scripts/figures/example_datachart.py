@@ -6,6 +6,7 @@ import os, sys
 import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib import font_manager as fm, ticker
+sys.stdout.reconfigure(encoding='utf-8'); sys.stderr.reconfigure(encoding='utf-8')   # Windows 下输出被重定向时默认编码不是 UTF-8，打印中文会报错
 
 # 中文字体：先找同目录的字体文件，再按顺序找系统已装的中文字体（Windows 有宋体 / 微软雅黑，Linux 常见 Noto / 思源）
 FONT_FILE = 'NotoSerifSC.otf'

@@ -3,6 +3,7 @@ import os, sys
 import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib import font_manager as fm, ticker
+sys.stdout.reconfigure(encoding='utf-8'); sys.stderr.reconfigure(encoding='utf-8')   # Windows 下输出被重定向时默认编码不是 UTF-8，打印中文会报错
 CANDIDATES = ['SimSun', 'Songti SC', 'Noto Serif CJK SC', 'Source Han Serif SC', 'Microsoft YaHei', 'Noto Sans CJK SC']
 installed = {f.name for f in fm.fontManager.ttflist}
 plt.rcParams['font.family'] = next((c for c in CANDIDATES if c in installed), 'sans-serif')

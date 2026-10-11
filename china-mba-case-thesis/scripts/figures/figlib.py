@@ -4,7 +4,7 @@
 要换风格只改 STYLE，不在单张图里写颜色值。
 依赖：pip install playwright；Chromium（playwright install chromium，或已有的 Chromium）
 """
-import html, os
+import html, os, pathlib
 
 STYLE = dict(
     font="'Noto Serif CJK SC','Source Han Serif SC','Songti SC','SimSun',serif",  # 接近宋体的衬线中文字体
@@ -96,7 +96,7 @@ class Fig:
         图内不写图题，图题放在 Word 里。"""
         os.makedirs(outdir, exist_ok=True)
         p = os.path.join(outdir, name + '.svg')
-        with open(p, 'w', encoding='utf-8') as f:
+        with open(p, 'w', encoding='utf-8', newline='\n') as f:
             f.write(s.svg())
         if png:
             render(p, os.path.join(outdir, name + '.png'), s.w, s.h)
@@ -109,7 +109,7 @@ def render(svgpath, pngpath, w, h, scale=2):
     with sync_playwright() as p:
         b = p.chromium.launch(executable_path=exe) if exe else p.chromium.launch()
         pg = b.new_page(viewport={'width': w, 'height': h}, device_scale_factor=scale)
-        pg.goto('file://' + os.path.abspath(svgpath))
+        pg.goto(pathlib.Path(svgpath).resolve().as_uri())   # Windows 路径也能转成合法的 file:/// 地址
         pg.wait_for_timeout(300)
         pg.screenshot(path=pngpath, full_page=False)
         b.close()

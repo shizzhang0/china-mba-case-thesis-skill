@@ -4,6 +4,7 @@
 排除 归档/ 和 tmp/。同一天同一事件名重复运行会加序号。
 """
 import sys, os, zipfile, datetime
+sys.stdout.reconfigure(encoding='utf-8'); sys.stderr.reconfigure(encoding='utf-8')   # Windows 下输出被重定向时默认编码不是 UTF-8，打印中文会报错
 
 EXCLUDE = {'归档', 'tmp', '__pycache__', 'node_modules', '.git'}
 

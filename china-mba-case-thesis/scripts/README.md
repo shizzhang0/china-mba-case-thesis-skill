@@ -18,12 +18,18 @@
 
 ## 平台说明
 
-- **Windows**：`render_pdf.py` 要用 LibreOffice 自带的 Python 运行：`"C:\Program Files\LibreOffice\program\python.exe" render_pdf.py ...`。画图脚本直接用系统的宋体，不需要 `extract_cjk_font.py`。Chromium 可以用已装的 Chrome：设环境变量 `CHROMIUM_PATH` 指向 chrome.exe。
+- **Windows**（已在 Windows 11 实测，`render_pdf.py` 除外）：
+  - 命令里的 `python3` 换成 `python`。
+  - 画图脚本直接用系统的宋体，不需要 `extract_cjk_font.py`。
+  - Chromium 可以用已装的 Chrome：设环境变量 `CHROMIUM_PATH` 指向 chrome.exe（如 `C:\Program Files\Google\Chrome\Application\chrome.exe`），否则要先运行 `playwright install chromium` 下载一份。
+  - `survey_samples.py` 可用 Git for Windows 自带的 pdftotext（xpdf 版），脚本已处理它的中文编码和中文路径问题。
+  - `render_pdf.py` 要用 LibreOffice 自带的 Python 运行：`"C:\Program Files\LibreOffice\program\python.exe" render_pdf.py ...`；缩略图需要另装 poppler 的 pdftoppm。尚未在 Windows 上实测。
 - **Linux / 云端**：没有宋体和 Times New Roman，LibreOffice 排出的页码会和 Word 差一两页，只用来看版面。
 
 ## 快速试跑
 
 ```bash
+pip install playwright matplotlib                 # 只需一次；也可以用 uv run --with playwright --with matplotlib 临时运行
 cd scripts/figures && python3 example_diagram.py && python3 example_datachart.py   # 输出到 out/
 cd ../docx && npm install && node build_docx.js thesis.config.example.json 示例.docx
 python3 ../check/docx_text_diff.py 示例.docx 示例.docx
