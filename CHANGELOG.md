@@ -13,3 +13,5 @@
   - `survey_samples.py`：pdftotext 加 `-enc UTF-8`（xpdf 版默认丢中文）、绕开中文路径、失败时改用 pdfminer 并给出提示、页数不再多算 1 页
   - `figlib.py`：文件地址改用标准 file URL，SVG 统一 LF 换行
   - `render_pdf.py`：Windows 下的文件 URL 和 soffice 路径
+- 不编造规则补充：举例、问询稿和修改指引里不放能直接搬进正文的具体数字或企业事实；行业或公开数据只能作参照，不能顶替企业数据
+- 新增 `evals/`：20 条触发测试、7 条入口与边界测试、3 个虚构案例（成文、数据解读、整体审查），附标准答案与数据生成脚本
