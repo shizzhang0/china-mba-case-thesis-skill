@@ -1,46 +1,66 @@
-"""示意图辅助模块：用坐标排版生成 SVG，再用无头 Chromium 按 2 倍分辨率截成 PNG。
+"""示意图辅助模块：按像素坐标排版（原点在左上角，y 向下），用 matplotlib 输出 SVG 和 2 倍分辨率 PNG。
 
 用法见 example_diagram.py。全文的图都从这里取字体和颜色，保证风格统一；
-要换风格只改 STYLE，不在单张图里写颜色值。
-依赖：pip install playwright；Chromium（playwright install chromium，或已有的 Chromium）
+要换风格只改 STYLE 和 C，不在单张图里写颜色值。
+依赖：pip install matplotlib
 """
-import html, os, pathlib
+import math, os
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from matplotlib import font_manager, patches, patheffects
 
 STYLE = dict(
-    font="'Noto Serif CJK SC','Source Han Serif SC','Songti SC','SimSun',serif",  # 接近宋体的衬线中文字体
+    fonts=['SimSun', 'Songti SC', 'Noto Serif CJK SC', 'Source Han Serif SC', 'STSong'],  # 接近宋体的衬线中文字体，按顺序取第一个已安装的
+    latin=['Times New Roman', 'Liberation Serif', 'DejaVu Serif'],                          # 西文字体，与论文正文的“宋体 + Times New Roman”一致
     fs=26,            # 默认字号（px），画布约 1500 px 宽时 20–28 较合适
-    sw=2,             # 默认线宽
+    sw=2,             # 默认线宽（px）
 )
 # 配色：灰黑线条文字，白/浅灰两档底色，只有一种强调色（及其浅色填充），问题/断点用红色
 C = dict(line='#262626', text='#1a1a1a', gray='#595959', lgray='#8c8c8c',
          fill='#ffffff', fill2='#f2f2f2', fill3='#e6e6e6',
          hi='#dbe7f3', hiline='#2f5597', red='#c00000')
 
+DPI = 100                 # 1 px = 1/100 英寸，坐标与字号都按 px 写
+PT = 72 / DPI             # px → pt
+_installed = {f.name for f in font_manager.fontManager.ttflist}
+_font = next((f for f in STYLE['fonts'] if f in _installed), None)
+if _font is None:
+    raise SystemExit('没有可用的中文衬线字体：Windows 有宋体即可；Linux 装 Noto Serif CJK，或先运行 extract_cjk_font.py')
+_latin = next((f for f in STYLE['latin'] if f in _installed), None)
+# 字体按顺序回退：西文字符用 _latin，它没有的字形（中文）再用 _font
+plt.rcParams.update({'font.family': [f for f in (_latin, _font) if f], 'svg.fonttype': 'path', 'lines.scale_dashes': False})
+
 
 class Fig:
     def __init__(s, w, h):
         s.w, s.h = w, h
-        s.el = []
-        s.markers = set()
-
-    def add(s, x):
-        s.el.append(x)
+        s.fig = plt.figure(figsize=(w / DPI, h / DPI), dpi=DPI, facecolor='white')
+        s.ax = s.fig.add_axes([0, 0, 1, 1])
+        s.ax.set_xlim(0, w); s.ax.set_ylim(h, 0); s.ax.axis('off')
 
     def text(s, x, y, t, fs=None, anchor='middle', color=None, weight='normal', italic=False):
-        """多行文字用 \\n 分隔，以 (x, y) 为整体中心。"""
+        """多行文字用 \\n 分隔，以 (x, y) 为整体中心。anchor：start / middle / end。"""
         fs = fs or STYLE['fs']
         lines = t.split('\n'); lh = fs * 1.3
         y0 = y - (len(lines) - 1) * lh / 2
-        it = ' font-style="italic"' if italic else ''
+        ha = {'start': 'left', 'middle': 'center', 'end': 'right'}[anchor]
         col = color or C['text']
+        # 宋体没有粗体字形，加粗用同色描边模拟
+        fx = [patheffects.withStroke(linewidth=fs * PT * 0.06, foreground=col)] if weight == 'bold' else None
         for i, l in enumerate(lines):
-            s.add(f'<text x="{x:.1f}" y="{y0 + i * lh:.1f}" font-size="{fs}" text-anchor="{anchor}" '
-                  f'dominant-baseline="central" fill="{col}" font-weight="{weight}"{it}>{html.escape(l)}</text>')
+            s.ax.text(x, y0 + i * lh, l, fontsize=fs * PT, ha=ha, va='center', color=col,
+                      fontstyle='italic' if italic else 'normal', path_effects=fx, zorder=5)
 
     def rect(s, x, y, w, h, fill=None, stroke=None, sw=None, dash=False, rx=0):
-        d = ' stroke-dasharray="10,6"' if dash else ''
-        s.add(f'<rect x="{x:.1f}" y="{y:.1f}" width="{w:.1f}" height="{h:.1f}" rx="{rx}" fill="{fill or C["fill"]}" '
-              f'stroke="{stroke or C["line"]}" stroke-width="{sw or STYLE["sw"]}"{d}/>')
+        kw = dict(facecolor=fill or C['fill'], edgecolor=stroke or C['line'], linewidth=(sw or STYLE['sw']) * PT, zorder=2)
+        if dash:
+            kw['linestyle'] = (0, (10 * PT, 6 * PT))
+        if rx:
+            p = patches.FancyBboxPatch((x, y), w, h, boxstyle=f'round,pad=0,rounding_size={rx}', **kw)
+        else:
+            p = patches.Rectangle((x, y), w, h, **kw)
+        s.ax.add_patch(p)
 
     def box(s, cx, cy, w, h, t='', fs=None, fill=None, stroke=None, sw=None, dash=False, rx=0, weight='normal', color=None):
         """以中心点定位的方框；dash=True 表示组织外部环节（如委外）。返回 (cx, cy, w, h) 便于连线。"""
@@ -49,67 +69,54 @@ class Fig:
             s.text(cx, cy, t, fs, color=color, weight=weight)
         return (cx, cy, w, h)
 
+    def _head(s, tip, frm, color):
+        """在 tip 处画实心三角箭头（长 16 px、宽 16 px），返回箭头底边中点，线画到这里为止。"""
+        dx, dy = tip[0] - frm[0], tip[1] - frm[1]
+        d = math.hypot(dx, dy) or 1
+        ux, uy = dx / d, dy / d
+        bx, by = tip[0] - ux * 16, tip[1] - uy * 16
+        s.ax.add_patch(patches.Polygon([tip, (bx - uy * 8, by + ux * 8), (bx + uy * 8, by - ux * 8)],
+                                       closed=True, facecolor=color, edgecolor='none', zorder=4))
+        return (bx + ux * 1, by + uy * 1)
+
     def line(s, pts, color=None, sw=None, dash=False, arrow=True, start_arrow=False, dasharray='10,6'):
         """折线，pts 为 [(x, y), ...]；默认终点带箭头。"""
-        d = 'M ' + ' L '.join(f'{x:.1f} {y:.1f}' for x, y in pts)
-        c = color or C['line']; mid = c.replace('#', '')
-        s.markers.add(c)
-        a = f' marker-end="url(#ah{mid})"' if arrow else ''
-        a += f' marker-start="url(#as{mid})"' if start_arrow else ''
-        da = f' stroke-dasharray="{dasharray}"' if dash else ''
-        s.add(f'<path d="{d}" fill="none" stroke="{c}" stroke-width="{sw or STYLE["sw"]}"{da}{a}/>')
+        c = color or C['line']; pts = [tuple(p) for p in pts]
+        if arrow:
+            pts[-1] = s._head(pts[-1], pts[-2], c)
+        if start_arrow:
+            pts[0] = s._head(pts[0], pts[1], c)
+        kw = dict(color=c, linewidth=(sw or STYLE['sw']) * PT, solid_capstyle='butt', zorder=3)
+        if dash:
+            on, off = (float(v) for v in dasharray.split(','))
+            kw['linestyle'] = (0, (on * PT, off * PT))
+        s.ax.plot([p[0] for p in pts], [p[1] for p in pts], **kw)
 
     def diamond(s, cx, cy, w, h, t, fs=None, fill=None):
         """判断框。"""
-        pts = f'{cx},{cy - h / 2} {cx + w / 2},{cy} {cx},{cy + h / 2} {cx - w / 2},{cy}'
-        s.add(f'<polygon points="{pts}" fill="{fill or C["fill"]}" stroke="{C["line"]}" stroke-width="{STYLE["sw"]}"/>')
+        s.ax.add_patch(patches.Polygon([(cx, cy - h / 2), (cx + w / 2, cy), (cx, cy + h / 2), (cx - w / 2, cy)], closed=True,
+                                       facecolor=fill or C['fill'], edgecolor=C['line'], linewidth=STYLE['sw'] * PT, zorder=2))
         s.text(cx, cy, t, fs or STYLE['fs'] - 2)
 
     def cross(s, cx, cy, r=13, color=None, sw=4):
         """红色叉号，标记断点或问题。"""
         c = color or C['red']
-        s.add(f'<path d="M{cx - r} {cy - r} L{cx + r} {cy + r} M{cx - r} {cy + r} L{cx + r} {cy - r}" '
-              f'stroke="{c}" stroke-width="{sw}" stroke-linecap="round"/>')
+        for (x1, y1), (x2, y2) in (((cx - r, cy - r), (cx + r, cy + r)), ((cx - r, cy + r), (cx + r, cy - r))):
+            s.ax.plot([x1, x2], [y1, y2], color=c, linewidth=sw * PT, solid_capstyle='round', zorder=4)
 
     def circle(s, cx, cy, r, t='', fs=22, fill='#262626', color='#ffffff', stroke=None):
         """编号圆点。"""
-        s.add(f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="{fill}" stroke="{stroke or fill}" stroke-width="2"/>')
+        s.ax.add_patch(patches.Circle((cx, cy), r, facecolor=fill, edgecolor=stroke or fill, linewidth=2 * PT, zorder=4))
         if t:
             s.text(cx, cy, t, fs, color=color, weight='bold')
 
-    def raw(s, x):
-        s.add(x)
-
-    def svg(s):
-        defs = ''.join(
-            f'<marker id="ah{c[1:]}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="16" markerHeight="16" '
-            f'markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="{c}"/></marker>'
-            f'<marker id="as{c[1:]}" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="16" markerHeight="16" '
-            f'markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="{c}"/></marker>'
-            for c in sorted(s.markers))
-        return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{s.w}" height="{s.h}" viewBox="0 0 {s.w} {s.h}" '
-                f'font-family="{STYLE["font"]}"><defs>{defs}</defs><rect width="100%" height="100%" fill="#ffffff"/>'
-                + '\n'.join(s.el) + '</svg>')
-
     def save(s, name, outdir='out', png=True):
-        """写出 <name>.svg，并截成 <name>.png。name 建议用“图x.x_图题”，与 Word 生成脚本的查找规则一致。
+        """写出 <name>.svg，并输出 2 倍分辨率的 <name>.png。name 建议用“图x.x_图题”，与 Word 生成脚本的查找规则一致。
         图内不写图题，图题放在 Word 里。"""
         os.makedirs(outdir, exist_ok=True)
         p = os.path.join(outdir, name + '.svg')
-        with open(p, 'w', encoding='utf-8', newline='\n') as f:
-            f.write(s.svg())
+        s.fig.savefig(p, facecolor='white')
         if png:
-            render(p, os.path.join(outdir, name + '.png'), s.w, s.h)
+            s.fig.savefig(os.path.join(outdir, name + '.png'), dpi=DPI * 2, facecolor='white')
+        plt.close(s.fig)
         return p
-
-
-def render(svgpath, pngpath, w, h, scale=2):
-    from playwright.sync_api import sync_playwright
-    exe = os.environ.get('CHROMIUM_PATH')  # 已有 Chromium 时可指定路径，避免另行下载
-    with sync_playwright() as p:
-        b = p.chromium.launch(executable_path=exe) if exe else p.chromium.launch()
-        pg = b.new_page(viewport={'width': w, 'height': h}, device_scale_factor=scale)
-        pg.goto(pathlib.Path(svgpath).resolve().as_uri())   # Windows 路径也能转成合法的 file:/// 地址
-        pg.wait_for_timeout(300)
-        pg.screenshot(path=pngpath, full_page=False)
-        b.close()

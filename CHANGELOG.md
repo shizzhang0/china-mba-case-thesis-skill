@@ -1,5 +1,12 @@
 # Changelog
 
+## 未发布
+
+- 配套脚本统一为只需 Python：
+  - Word 生成改为 `docx/build_docx.py`，只用标准库直接写 OOXML，替代 Node.js 的 `build_docx.js`；配置文件格式和源稿约定不变
+  - `figlib.py` 改用 matplotlib 绘制，不再需要 playwright 和 Chrome / Chromium；接口不变，西文字符用 Times New Roman，加粗用描边模拟
+  - `docx_text_diff.py`：run 里的制表符计入文字，pPr 里的制表位定义不计
+
 ## 0.1.0（2026-10-11）
 
 首个公开版本。

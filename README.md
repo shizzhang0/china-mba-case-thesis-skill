@@ -40,8 +40,8 @@ china-mba-case-thesis/  skill 本体
   scripts/              配套脚本（见 scripts/README.md）
     snapshot.py           大改前打 zip 快照，代替复制加后缀
     survey/               范文横向统计（页数、章节、图表数、关键词频次）
-    docx/                 Markdown 源稿 → 学位论文 Word（docx-js），学校格式写在配置文件里
-    figures/              示意图辅助库（SVG → PNG）与数据图示例，全文统一风格
+    docx/                 Markdown 源稿 → 学位论文 Word（只用 Python 标准库），学校格式写在配置文件里
+    figures/              示意图辅助库与数据图示例（matplotlib），全文统一风格
     check/                文本对比、PDF 版面抽查、目录文字与页码核对
   templates/            决定日志、章节源稿模板
   example/              虚构企业 YT 公司的示例源稿（含一章完整的现状与问题分析）和绘图脚本
@@ -49,12 +49,17 @@ china-mba-case-thesis/  skill 本体
 
 ## 快速试跑
 
+只需要 Python 3.8 以上。生成 Word 不用装任何包：
+
 ```bash
-cd china-mba-case-thesis/scripts/docx && npm install
-node build_docx.js thesis.config.example.json 示例.docx     # 用 example/ 的源稿生成 Word
+cd china-mba-case-thesis/scripts/docx
 ```
 
-生成的文件只有目录域，在 Word 里打开后更新目录再保存。其余脚本的依赖和平台说明见 `china-mba-case-thesis/scripts/README.md`。脚本在 Windows 11 上逐个实测过（`render_pdf.py` 除外，它需要 LibreOffice）。
+```bash
+python build_docx.py thesis.config.example.json 示例.docx
+```
+
+用 `example/` 的源稿生成一份 Word。目录条目已经按标题填好，页码要在 Word 里更新目录后保存才有。画图脚本另需 `pip install matplotlib`。其余脚本的依赖和平台说明见 `china-mba-case-thesis/scripts/README.md`。脚本在 Windows 11 上逐个实测过（`render_pdf.py` 除外，它需要 LibreOffice）。
 
 ## 方法的核心
 

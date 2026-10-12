@@ -1,6 +1,0 @@
-{
-  "name": "thesis-docx-builder",
-  "private": true,
-  "description": "Markdown 源稿 → 学位论文 Word",
-  "dependencies": { "docx": "^9.6.1" }
-}
