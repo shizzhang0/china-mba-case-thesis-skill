@@ -21,7 +21,7 @@ skill 本体是 `china-mba-case-thesis/` 这个文件夹。下面两种方式任
 
 > 请阅读 https://github.com/shizzhang0/china-mba-case-thesis-skill 里的 `china-mba-case-thesis/SKILL.md`，按其中的方法协助我写论文；用到哪个阶段，再读 `references/` 里对应的文件。
 
-**方式二：下载到本地。** 在本页点 Code → Download ZIP，或到 [Releases](https://github.com/shizzhang0/china-mba-case-thesis-skill/releases) 下载只含 skill 文件夹的 zip。解压后：
+**方式二：下载到本地。** 在本页点 Code → Download ZIP，或到 [Releases](https://github.com/shizzhang0/china-mba-case-thesis-skill/releases) 下载某个版本的源码包（Source code），解压后使用其中的 `china-mba-case-thesis/` 文件夹：
 
 - 你的 AI 工具支持 skill（Agent Skills）的，把 `china-mba-case-thesis/` 文件夹放进它读取 skill 的目录，按工具的说明安装即可；
 - 不支持的，直接告诉 AI：“读一下 `<解压路径>/china-mba-case-thesis/SKILL.md`，按它的方法帮我写论文。”
@@ -35,6 +35,7 @@ skill 本体是 `china-mba-case-thesis/` 这个文件夹。下面两种方式任
 ```
 README.md / LICENSE / CHANGELOG.md
 china-mba-case-thesis/  skill 本体
+  LICENSE.txt           许可（与根目录 LICENSE 相同，复制 skill 文件夹时随之带走）
   SKILL.md              方法总纲：助手的角色与边界、六条原则、从哪里进入、每次开工先做的事、文件管理、六个阶段
   references/           各阶段细则：取证、访谈与问卷、成文、合稿与检查、整体审查清单、源稿约定、文件管理
   scripts/              配套脚本（见 scripts/README.md）
