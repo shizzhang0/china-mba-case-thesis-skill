@@ -8,7 +8,7 @@
 |---|---|---|
 | `snapshot.py` | 大改前把工作目录打成一个带日期和事件名的 zip 放进 `归档/`，代替复制加后缀 | 标准库 |
 | `survey/survey_samples.py` | 阶段 1 用：批量统计范文 PDF 的页数、章节骨架、图表数、文献数、关键词频次，输出一张表 | pdftotext（poppler / xpdf）或 `pip install pdfminer.six` |
-| `docx/build_docx.py` | 按配置把 Markdown 源稿整份生成 Word：分节、罗马/阿拉伯页码、页眉页脚、目录（条目预填，页码由 Word 更新）、标题样式、三线表、图表题、图注表注、角标、参考文献、附录与致谢；生成后打印各章汉字数 | 标准库 |
+| `docx/build_docx.py` | 按配置把 Markdown 源稿整份生成 Word：分节、罗马/阿拉伯页码、页眉页脚、目录（条目预填，页码由 Word 更新）、标题样式、三线表、图表题、图注表注、角标、参考文献、附录与致谢；生成后打印各章汉字数。也可在别的脚本里导入（用法见文件开头说明） | 标准库 |
 | `docx/thesis.config.example.json` | 配置样例：路径、学校格式、封面版式。复制一份改成本校规范和自己的信息 | — |
 | `figures/figlib.py` | 示意图辅助库：方框、折线箭头、菱形、编号圆点、红叉；统一字体与配色；输出 SVG 和 2 倍分辨率 PNG | matplotlib |
 | `figures/example_diagram.py` | 示意图写法示例（一图一脚本） | 同上 |
