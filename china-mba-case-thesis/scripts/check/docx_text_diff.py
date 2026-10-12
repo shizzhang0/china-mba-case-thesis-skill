@@ -12,7 +12,8 @@ W = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
 def paragraphs(path):
     root = ET.fromstring(zipfile.ZipFile(path).read('word/document.xml'))
     for p in root.iter(W + 'p'):
-        t = ''.join(x.text or '' for x in p.iter() if x.tag in (W + 't', W + 'tab') and (x.text or x.tag == W + 'tab'))
+        # 只取 run 里的文字和制表符；pPr 里的 <w:tabs><w:tab/> 是制表位定义，不是内容
+        t = ''.join('\t' if x.tag == W + 'tab' else (x.text or '') for r in p.iter(W + 'r') for x in r if x.tag in (W + 't', W + 'tab'))
         t = t.strip()
         if t:
             yield t

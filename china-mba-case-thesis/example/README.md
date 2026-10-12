@@ -4,4 +4,4 @@
 
 - `src/`：摘要、第 1–3 章、参考文献。第 3 章是完整的“现状与问题分析”章，演示了概况 → 现状 → 问题 → 原因的写法、表格与图注、`[需补充]` 占位和章末待办区；第 1、2 章只写到能演示约定的程度。
 - `figs/`：导出的图；`figs/脚本/` 是生成这些图的脚本（一图一脚本，示意图用 figlib，数据图用 matplotlib）。
-- 生成 Word：`cd ../scripts/docx && node build_docx.js thesis.config.example.json 示例.docx`
+- 生成 Word：`cd ../scripts/docx && python build_docx.py thesis.config.example.json 示例.docx`
