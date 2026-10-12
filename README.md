@@ -34,7 +34,6 @@ skill 本体是 `china-mba-case-thesis/` 这个文件夹。下面两种方式任
 
 ```
 README.md / LICENSE / CHANGELOG.md
-evals/                  给维护者用的评测（不属于 skill 本体，安装时不用复制）
 china-mba-case-thesis/  skill 本体
   SKILL.md              方法总纲：助手的角色与边界、六条原则、从哪里进入、每次开工先做的事、文件管理、六个阶段
   references/           各阶段细则：取证、访谈与问卷、成文、合稿与检查、整体审查清单、源稿约定、文件管理
@@ -56,10 +55,6 @@ china-mba-case-thesis/  skill 本体
 4. 过程外化：判断写成文件，不只留在对话里
 5. 单一源稿，整份重建：只改 Markdown 和绘图脚本，Word 和图每次重新生成
 6. 作者拍板，助手提方案：决定记入决定日志
-
-## 参与开发
-
-`evals/` 是给维护者用的评测：改了 skill 之后，用里面的触发测试、入口与边界测试和虚构案例检查助手的行为有没有变化。跑法和每轮结果见 [`evals/README.md`](evals/README.md)。
 
 ## 许可
 
