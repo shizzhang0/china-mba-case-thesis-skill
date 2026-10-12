@@ -1,6 +1,7 @@
 """把 Markdown 源稿整份生成学位论文 Word。只用 Python 标准库，直接写 OOXML。
     python build_docx.py <配置.json> [输出.docx]
 学校格式、封面字段、路径全部来自配置文件；本脚本只保留通用逻辑。源稿写法见 references/源稿约定.md。
+生成后打印各章汉字数，供对照学校的字数要求。
 """
 import sys, os, re, json, math, zipfile, datetime
 from urllib.parse import unquote
@@ -272,14 +273,14 @@ def convert_chapter(md):
                 title = text
             blocks.append(heading(level, text)); i += 1; continue
         if l.startswith('!['):
-            m = re.search(r'图\s*(\d+\.\d+)', l)
+            m = re.search(r'图\s*([A-Z\d]+\.\d+)', l)   # 正文“图 3.1”，附录“图 A.1”
             if not m:
-                sys.exit('图片行缺少“图 x.x”：' + l)
+                sys.exit('图片行缺少“图 x.x”或“图 A.x”：' + l)
             pm = re.search(r'\]\(([^)]+)\)', l)
             blocks.append(image_para(m.group(1), pm.group(1).strip() if pm else None)); i += 1; continue
         if l.startswith('【图'):
             t = re.sub(r'^【|】$', '', l.strip()); blocks.append(caption_para(t, False))
-            n = (re.search(r'图\s*(\d+\.\d+)', t) or [None, None])[1]; i += 1
+            n = (re.search(r'图\s*([A-Z\d]+\.\d+)', t) or [None, None])[1]; i += 1
             # 图下紧跟的 > 资料来源/注 行作为图注输出，其余 > 行是写作备注
             j = i
             while j < len(L) and L[j].strip() == '':
@@ -470,16 +471,47 @@ def toc_blocks():
     return [title, sdt]
 
 
+# ---------- 字数（只数汉字，不含写作备注、图片行和章末待办） ----------
+CJK = re.compile(r'[㐀-䶿一-鿿豈-﫿]')
+
+
+def cjk_count(md):
+    L = md.splitlines()
+    cut = next((k for k, l in enumerate(L) if CUT_RE.search(l)), None)
+    if cut is not None:
+        L = L[:cut]
+    keep = [l for l in L if not l.startswith('![') and not (l.startswith('>') and not NOTE_RE.search(re.sub(r'^>\s*', '', l)))]
+    return len(CJK.findall('\n'.join(keep)))
+
+
 # ---------- 组装 ----------
+def read_src(name):
+    p = os.path.join(SRC, name)
+    if not os.path.exists(p):
+        sys.exit('找不到源稿：' + p)
+    return open(p, encoding='utf-8-sig').read()
+
+
 FL = CFG.get('files', {})
-abs_zh, abs_en = convert_abstract(open(os.path.join(SRC, FL.get('abstract', '摘要.md')), encoding='utf-8-sig').read())
+abs_md = read_src(FL.get('abstract', '摘要.md'))
+abs_zh, abs_en = convert_abstract(abs_md)
 ch_re = re.compile(FL.get('chapterPattern', r'^第\d+章'))
 ch_files = sorted((f for f in os.listdir(SRC) if ch_re.search(f) and f.endswith('.md')),
                   key=lambda f: int(re.search(r'\d+', f).group()))
-extras = [convert_chapter(open(os.path.join(SRC, e), encoding='utf-8-sig').read())[1] for e in CFG.get('extraFrontFiles', [])]
-chapters = [convert_chapter(open(os.path.join(SRC, f), encoding='utf-8-sig').read()) for f in ch_files]
+extras = [convert_chapter(read_src(e))[1] for e in CFG.get('extraFrontFiles', [])]
+ch_md = [read_src(f) for f in ch_files]
+chapters = [convert_chapter(md) for md in ch_md]
 refs_file = os.path.join(SRC, FL.get('references', '参考文献.md'))
-refs = convert_refs(open(refs_file, encoding='utf-8-sig').read()) if os.path.exists(refs_file) else None
+refs_md = open(refs_file, encoding='utf-8-sig').read() if os.path.exists(refs_file) else None
+refs = convert_refs(refs_md) if refs_md else None
+# 参考文献之后的部分（附录、致谢、攻读学位期间成果等），按配置顺序各占一节，标题进目录
+back_md = [(e, read_src(e)) for e in CFG.get('extraBackFiles', [])]
+backs = []
+for e, md in back_md:
+    title, blocks = convert_chapter(md)
+    if not title:
+        sys.exit(f'{e} 缺少一级标题（如“# 附录 A　访谈提纲”“# 致　　谢”）')
+    backs.append((title, blocks))
 
 FRONT_FMT, BODY_FMT = PN.get('front', 'upperRoman'), PN.get('body', 'decimal')
 sections = []   # (块列表, sectPr)
@@ -498,6 +530,8 @@ for k, (title, blocks) in enumerate(chapters):
     sections.append((blocks, sect_pr(header_with(title), footer_page(), start=1 if k == 0 else None, fmt=BODY_FMT)))
 if refs:
     sections.append((refs, sect_pr(header_with(CFG.get('referencesTitle', '参考文献')), footer_page(), fmt=BODY_FMT)))
+for title, blocks in backs:
+    sections.append((blocks, sect_pr(header_with(title), footer_page(), fmt=BODY_FMT)))
 sections[toc_index] = (toc_blocks(), sections[toc_index][1])
 
 body = []
@@ -588,3 +622,14 @@ with zipfile.ZipFile(OUT, 'w', zipfile.ZIP_DEFLATED) as z:
     for name, data in MEDIA:
         z.writestr('word/media/' + name, data)
 print('已生成', OUT, '章数', len(chapters), '大小', os.path.getsize(OUT))
+
+counts = [(t or f, cjk_count(md)) for f, md, (t, _) in zip(ch_files, ch_md, chapters)]
+body_total = sum(n for _, n in counts)
+rows = [('中文摘要', cjk_count(re.split(r'^# Abstract\s*$', abs_md, maxsplit=1, flags=re.M)[0]))] + counts
+rows.append(('正文合计', body_total))
+if refs_md:
+    rows.append((CFG.get('referencesTitle', '参考文献'), cjk_count(refs_md)))
+rows += [(t, cjk_count(md)) for (t, _), (_, md) in zip(backs, back_md)]
+print('\n汉字数（不含写作备注、图片行和章末待办；学校按 Word 字数统计的，以 Word 为准）：')
+for name, n in rows:
+    print(f'  {n:>7}  {name}')
