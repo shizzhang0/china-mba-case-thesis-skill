@@ -484,6 +484,14 @@ def cjk_count(md):
     return len(CJK.findall('\n'.join(keep)))
 
 
+def abstract_body_count(md):
+    """中文摘要只数正文：去掉第一段题目和关键词及其后的内容。"""
+    zh = re.split(r'^# Abstract\s*$', md, maxsplit=1, flags=re.M)[0]
+    L = [l for l in zh.splitlines() if l.strip() and not l.startswith('>') and not l.startswith('# ')]
+    k = next((i for i, l in enumerate(L) if re.match(r'^\*\*(关键词|Key ?words)', l.strip(), re.I)), len(L))
+    return cjk_count('\n'.join(L[1:k]))
+
+
 # ---------- 组装 ----------
 def read_src(name):
     p = os.path.join(SRC, name)
@@ -625,7 +633,7 @@ print('已生成', OUT, '章数', len(chapters), '大小', os.path.getsize(OUT))
 
 counts = [(t or f, cjk_count(md)) for f, md, (t, _) in zip(ch_files, ch_md, chapters)]
 body_total = sum(n for _, n in counts)
-rows = [('中文摘要', cjk_count(re.split(r'^# Abstract\s*$', abs_md, maxsplit=1, flags=re.M)[0]))] + counts
+rows = [('中文摘要（不含题目和关键词）', abstract_body_count(abs_md))] + counts
 rows.append(('正文合计', body_total))
 if refs_md:
     rows.append((CFG.get('referencesTitle', '参考文献'), cjk_count(refs_md)))
