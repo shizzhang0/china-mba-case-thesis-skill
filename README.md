@@ -4,7 +4,7 @@
 
 ## 适合谁
 
-- 正在用 Claude、ChatGPT 等 AI 助手写 MBA / 专业硕士论文的人：把这个 skill 给助手，它会按固定流程工作，而不是每次从零开始
+- 正在用 AI 助手写 MBA / 专业硕士论文的人：把这个 skill 给助手，它会按固定流程工作，而不是每次从零开始
 - 想要一套"Markdown 写源稿 → 脚本生成合规 Word"流水线的人：`china-mba-case-thesis/scripts/` 可以单独用
 
 ## 使用边界
@@ -15,17 +15,18 @@
 
 ## 怎么用
 
-skill 本体是 `china-mba-case-thesis/` 这个文件夹，安装时只复制它，仓库根目录的其他文件（README、evals 等）不用复制。先把仓库克隆下来，或者在 GitHub 页面点 Code → Download ZIP：
+skill 本体是 `china-mba-case-thesis/` 这个文件夹。下面两种方式任选一种，对能读文件的 AI 助手都适用。
 
-```bash
-git clone https://github.com/shizzhang0/china-mba-case-thesis-skill.git
-```
+**方式一：让 AI 直接读仓库。** 把这段话发给你的 AI 助手（它需要能打开网页链接）：
 
-**Claude Code**：把 `china-mba-case-thesis/` 复制到 `~/.claude/skills/china-mba-case-thesis/`（全局；Windows 上是 `%USERPROFILE%\.claude\skills\china-mba-case-thesis\`）或项目下的 `.claude/skills/china-mba-case-thesis/`，之后提到"毕业论文 / MBA 论文 / 案例分析"时会自动触发，也可以用 `/china-mba-case-thesis` 调用。
+> 请阅读 https://github.com/shizzhang0/china-mba-case-thesis-skill 里的 `china-mba-case-thesis/SKILL.md`，按其中的方法协助我写论文；用到哪个阶段，再读 `references/` 里对应的文件。
 
-**Claude.ai**：把 `china-mba-case-thesis/` 文件夹打成 zip，在 设置 → 功能 → Skills 里上传。
+**方式二：下载到本地。** 在本页点 Code → Download ZIP，或到 [Releases](https://github.com/shizzhang0/china-mba-case-thesis-skill/releases) 下载只含 skill 文件夹的 zip。解压后：
 
-**其他智能体**：`SKILL.md` 是一份普通的 Markdown 说明书，直接作为系统提示或项目说明给它读即可；`references/` 在对应阶段再读。
+- 你的 AI 工具支持 skill（Agent Skills）的，把 `china-mba-case-thesis/` 文件夹放进它读取 skill 的目录，按工具的说明安装即可；
+- 不支持的，直接告诉 AI：“读一下 `<解压路径>/china-mba-case-thesis/SKILL.md`，按它的方法帮我写论文。”
+
+想用配套脚本（生成 Word、画图、范文统计等），AI 助手要能在你电脑上读写文件、运行命令，所以要用方式二。脚本只需要 Python 3.8 以上：生成 Word 不用装任何包，画图要 `pip install matplotlib`，详见 [`scripts/README.md`](china-mba-case-thesis/scripts/README.md)。
 
 **不用 AI 也能用**：`SKILL.md` + `references/` 本身就是一份写作指南，`scripts/` 的脚本不依赖 AI。
 
@@ -33,7 +34,7 @@ git clone https://github.com/shizzhang0/china-mba-case-thesis-skill.git
 
 ```
 README.md / LICENSE / CHANGELOG.md
-evals/                  skill 的评测用例（不属于 skill 本体，安装时不用复制）
+evals/                  给维护者用的评测（不属于 skill 本体，安装时不用复制）
 china-mba-case-thesis/  skill 本体
   SKILL.md              方法总纲：助手的角色与边界、六条原则、从哪里进入、每次开工先做的事、文件管理、六个阶段
   references/           各阶段细则：取证、访谈与问卷、成文、合稿与检查、整体审查清单、源稿约定、文件管理
@@ -47,20 +48,6 @@ china-mba-case-thesis/  skill 本体
   example/              虚构企业 YT 公司的示例源稿（含一章完整的现状与问题分析）和绘图脚本
 ```
 
-## 快速试跑
-
-只需要 Python 3.8 以上。生成 Word 不用装任何包：
-
-```bash
-cd china-mba-case-thesis/scripts/docx
-```
-
-```bash
-python build_docx.py thesis.config.example.json 示例.docx
-```
-
-用 `example/` 的源稿生成一份 Word。目录条目已经按标题填好，页码要在 Word 里更新目录后保存才有。画图脚本另需 `pip install matplotlib`。其余脚本的依赖和平台说明见 `china-mba-case-thesis/scripts/README.md`。脚本在 Windows 11 上逐个实测过（`render_pdf.py` 除外，它需要 LibreOffice）。
-
 ## 方法的核心
 
 1. 证据先于文字：每个判断都有依据，没有就留占位，不编造
@@ -70,17 +57,9 @@ python build_docx.py thesis.config.example.json 示例.docx
 5. 单一源稿，整份重建：只改 Markdown 和绘图脚本，Word 和图每次重新生成
 6. 作者拍板，助手提方案：决定记入决定日志
 
-## 评测
+## 参与开发
 
-`evals/` 里有三类评测，所有用例都是虚构的，跑法和每轮结果见 [`evals/README.md`](evals/README.md)：
-
-- **触发**：20 条提问（10 条应该用上本 skill，10 条相近但不应该用，如降 AIGC 率、定量实证、本科论文、教学案例），20 条全部判对
-- **入口与边界**：7 条提问，看助手是否从作者所处的阶段切入，是否守住不编造、不帮助规避检测、范围之外如实说明
-- **虚构案例**：餐饮（写一节正文）、物流（企业数据到手后的解读）、银行（送审前整体审查），附标准答案
-
-最近一轮（入口与边界的 4 条 + 3 个案例），带 skill 通过 49/52 个检查点，不带 skill 通过 37/52。差别主要不在找问题、算数字这些模型本来就会的事，而在流程纪律：不带 skill 时，3 个案例里有 2 次未经作者确认就直接改了稿子，1 次自行选定了统计口径；带 skill 时都先写解读、只报不改，把需要拍板的事交给作者。
-
-局限：评测由 AI 子代理执行和评分，每条只跑一到两次；触发测试用的是替代做法（让子代理从 skill 列表里选），只能说明 description 写得清楚，不等于真实环境里的触发率。
+`evals/` 是给维护者用的评测：改了 skill 之后，用里面的触发测试、入口与边界测试和虚构案例检查助手的行为有没有变化。跑法和每轮结果见 [`evals/README.md`](evals/README.md)。
 
 ## 许可
 
