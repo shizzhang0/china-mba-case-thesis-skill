@@ -70,7 +70,7 @@ def main():
                    + ' | '.join(str(r['kw'][k]) for k in kws) + ' |')
     def med(key):
         v = sorted(x[key] for x in rows); return v[len(v) // 2]
-    out += ['', f"中位数：页数 {med('pages')}，图 {med('figs')}，表 {med('tabs')}，文献 {med('refs')}", '', '## 章节骨架', '']
+    out += ['', f"中位数：页数 {med('pages')}，汉字数约 {med('cn_chars')//100*100}，图 {med('figs')}，表 {med('tabs')}，文献 {med('refs')}", '', '## 章节骨架', '']
     for r in rows:
         out.append(f"**{r['name'][:30]}**（{r['group']}）"); out += [f'- {c}' for c in r['chapters']]; out.append('')
     text = '\n'.join(out)
