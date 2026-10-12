@@ -1,6 +1,9 @@
 # Changelog
 
-## 未发布
+## 0.1.0（2026-10-11）
+
+首个公开版本。
+
 
 - 从 `case-thesis-drafting-method` 更名为 `china-mba-case-thesis`（仓库名 `china-mba-case-thesis-skill`）
 - 仓库改为两层结构：根目录放 README、LICENSE、CHANGELOG、evals；skill 本体放在 `china-mba-case-thesis/`
@@ -15,3 +18,4 @@
   - `render_pdf.py`：Windows 下的文件 URL 和 soffice 路径
 - 不编造规则补充：举例、问询稿和修改指引里不放能直接搬进正文的具体数字或企业事实；行业或公开数据只能作参照，不能顶替企业数据
 - 新增 `evals/`：20 条触发测试、7 条入口与边界测试、3 个虚构案例（成文、数据解读、整体审查），附标准答案与数据生成脚本
+- README 定稿：去掉“施工中”标注，补充获取方式、Windows 安装路径和评测摘要
