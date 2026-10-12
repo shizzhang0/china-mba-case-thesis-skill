@@ -13,6 +13,12 @@
 - `SKILL.md` frontmatter 加 `metadata.version`
 - Word 生成脚本支持附录、致谢等后置部分（配置 `extraBackFiles`），排在参考文献之后、标题进目录，附录图表可写“图 A.1”“表 A.1”；示例加了附录 A
 - Word 生成脚本生成后打印摘要、各章、参考文献、附录的汉字数和正文合计
+- 新增阶段 1、2 细则 `references/对标与搭框架.md`：范文收集与统计、横向分析报告、主题线对应表、定位红线、大纲与字数、方法说明与避免循环论证
+- 新增模板 `templates/主题线对应表.md`、`templates/范文横向分析.md`
+- `references/成文.md` 补各章写法：绪论、理论基础、现状与问题、原因分析、方案、效果与保障、结论、摘要，各写要回答什么、常见结构、常见扣分点
+- `references/成文.md` 补参考文献核对渠道（DOI、Crossref 查询、中文文献、国家标准）
+- `references/访谈与问卷.md` 补问卷信度（Cronbach's α）与效度的写法
+- README 方式一改用 raw 地址，AI 读到的是原始 Markdown
 
 ## 0.1.0（2026-10-12）
 
