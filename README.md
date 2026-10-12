@@ -5,7 +5,6 @@
 ## 适合谁
 
 - 正在用 AI 助手写 MBA / 专业硕士论文的人：把这个 skill 给助手，它会按固定流程工作，而不是每次从零开始
-- 想要一套"Markdown 写源稿 → 脚本生成合规 Word"流水线的人：`china-mba-case-thesis/scripts/` 可以单独用
 
 ## 使用边界
 
@@ -27,8 +26,6 @@ skill 本体是 `china-mba-case-thesis/` 这个文件夹。下面两种方式任
 - 不支持的，直接告诉 AI：“读一下 `<解压路径>/china-mba-case-thesis/SKILL.md`，按它的方法帮我写论文。”
 
 想用配套脚本（生成 Word、画图、范文统计等），AI 助手要能在你电脑上读写文件、运行命令，所以要用方式二。脚本只需要 Python 3.8 以上：生成 Word 不用装任何包，画图要 `pip install matplotlib`，详见 [`scripts/README.md`](china-mba-case-thesis/scripts/README.md)。
-
-**不用 AI 也能用**：`SKILL.md` + `references/` 本身就是一份写作指南，`scripts/` 的脚本不依赖 AI。
 
 ## 目录
 
