@@ -18,7 +18,9 @@ skill 本体是 `china-mba-case-thesis/` 这个文件夹。下面两种方式任
 
 **方式一：让 AI 直接读仓库。** 把这段话发给你的 AI 助手（它需要能打开网页链接）：
 
-> 请阅读 https://github.com/shizzhang0/china-mba-case-thesis-skill 里的 `china-mba-case-thesis/SKILL.md`，按其中的方法协助我写论文；用到哪个阶段，再读 `references/` 里对应的文件。
+> 请阅读 https://raw.githubusercontent.com/shizzhang0/china-mba-case-thesis-skill/main/china-mba-case-thesis/SKILL.md ，按其中的方法协助我写论文。用到哪个阶段，再读它提到的 `references/`、`templates/` 里的文件，地址是把文件路径接在 https://raw.githubusercontent.com/shizzhang0/china-mba-case-thesis-skill/main/china-mba-case-thesis/ 后面。
+
+这里给的是 raw 地址（纯文本），AI 读到的是原始 Markdown，不会把表格读乱。
 
 **方式二：下载到本地。** 在本页点 Code → Download ZIP，或到 [Releases](https://github.com/shizzhang0/china-mba-case-thesis-skill/releases) 下载某个版本的源码包（Source code），解压后使用其中的 `china-mba-case-thesis/` 文件夹：
 
@@ -34,14 +36,14 @@ README.md / LICENSE / CHANGELOG.md
 china-mba-case-thesis/  skill 本体
   LICENSE.txt           许可（与根目录 LICENSE 相同，复制 skill 文件夹时随之带走）
   SKILL.md              方法总纲：助手的角色与边界、六条原则、从哪里进入、每次开工先做的事、文件管理、六个阶段
-  references/           各阶段细则：取证、访谈与问卷、成文、合稿与检查、整体审查清单、源稿约定、文件管理
+  references/           各阶段细则：对标与搭框架、取证、访谈与问卷、成文、合稿与检查、整体审查清单、源稿约定、文件管理
   scripts/              配套脚本（见 scripts/README.md）
     snapshot.py           大改前打 zip 快照，代替复制加后缀
     survey/               范文横向统计（页数、章节、图表数、关键词频次）
     docx/                 Markdown 源稿 → 学位论文 Word（只用 Python 标准库），学校格式写在配置文件里
     figures/              示意图辅助库与数据图示例（matplotlib），全文统一风格
     check/                文本对比、PDF 版面抽查、目录文字与页码核对
-  templates/            决定日志、章节源稿模板
+  templates/            决定日志、主题线对应表、范文横向分析、章节源稿模板
   example/              虚构企业 YT 公司的示例源稿（含一章完整的现状与问题分析）和绘图脚本
 ```
 
