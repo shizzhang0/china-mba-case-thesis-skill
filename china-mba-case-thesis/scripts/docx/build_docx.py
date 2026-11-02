@@ -106,7 +106,74 @@ def abstract_body_count(md, note_re=DEFAULT_NOTE_RE, cut_re=DEFAULT_CUT_RE):
 
 def load_config(path):
     """读配置，返回 (配置, 配置文件所在目录)；配置里的相对路径都相对这个目录。"""
-    return json.load(open(path, encoding='utf-8-sig')), os.path.dirname(os.path.abspath(path))
+    with open(path, encoding='utf-8-sig') as f:
+        cfg = json.load(f)
+    for warning in validate_config(cfg):
+        print('配置警告：' + warning, file=sys.stderr)
+    return cfg, os.path.dirname(os.path.abspath(path))
+
+
+def validate_config(cfg):
+    """检查配置结构；返回未知键警告，缺失必需项或类型错误时抛出可读错误。"""
+    schema = {
+        'paths': {'src': str, 'img': str, 'out': str},
+        'files': {'abstract': str, 'chapterPattern': str, 'references': str},
+        'extraFrontFiles': list, 'extraBackFiles': list,
+        'page': {'widthTw': (int, float), 'heightTw': (int, float), 'marginTw': {'top': (int, float), 'bottom': (int, float), 'left': (int, float), 'right': (int, float), 'header': (int, float), 'footer': (int, float)}},
+        'fonts': {'latin': str, 'song': str, 'hei': str, 'kai': str, 'coverLatin': str},
+        'body': {'size': (str, int, float), 'lineSpacing': (int, float), 'firstLineChars': (int, float)},
+        'headings': list, 'captions': {'font': str, 'size': (str, int, float), 'bold': bool},
+        'table': {'size': (str, int, float), 'noteSize': (str, int, float), 'boldHeader': bool, 'outerRule8ths': (int, float), 'headRule8ths': (int, float), 'columnWeightsByCaption': dict},
+        'figures': {'filePrefix': str, 'defaultWidthCm': (int, float), 'maxHeightPx': (int, float), 'widthsPx': dict, 'notes': dict},
+        'noteMarkers': list, 'cutSectionPattern': str,
+        'header': {'enabled': bool, 'font': str, 'size': (str, int, float), 'align': str, 'borderBottom': bool},
+        'footer': {'align': str, 'size': (str, int, float)}, 'pageNumbers': {'front': str, 'body': str},
+        'toc': {'title': str, 'titleSize': (str, int, float), 'entrySize': (str, int, float), 'levels': str, 'indentChars': (int, float)},
+        'abstract': {'zhHead': str, 'enHead': str, 'headSize': (str, int, float), 'titleSize': (str, int, float)},
+        'referencesTitle': str, 'referencesSize': (str, int, float),
+        'cover': {'enabled': bool, 'layout': list}, 'titlePage': {'enabled': bool, 'layout': list},
+    }
+    if not isinstance(cfg, dict):
+        raise BuildError('配置文件最外层必须是 JSON 对象。')
+    warnings = []
+
+    def check(obj, shape, path, required=()):
+        if not isinstance(obj, dict):
+            raise BuildError(f'配置项 {path} 必须是 JSON 对象。')
+        for key, expected in shape.items():
+            child = f'{path}.{key}'
+            if key not in obj:
+                if key in required:
+                    raise BuildError(f'配置缺少必填项：{child}')
+                continue
+            value = obj[key]
+            if isinstance(expected, dict):
+                req = {
+                    '配置.paths': ('src', 'img'), '配置.page': ('widthTw', 'heightTw', 'marginTw'),
+                    '配置.page.marginTw': ('top', 'bottom', 'left', 'right', 'header', 'footer'),
+                    '配置.fonts': ('latin', 'song', 'hei', 'kai'), '配置.body': ('size',),
+                }.get(child, ())
+                check(value, expected, child, req)
+            elif not isinstance(value, expected) or (expected == (int, float) and isinstance(value, bool)):
+                raise BuildError(f'配置项 {child} 类型错误。')
+        for key in obj:
+            if key not in shape and not key.startswith('_'):
+                warnings.append(f'{path}.{key} 是未知键，可能拼写错误；脚本不会使用它。')
+    check(cfg, schema, '配置', ('paths', 'page', 'fonts', 'body'))
+    for i, heading in enumerate(cfg.get('headings', [])):
+        check(heading, {'size': (str, int, float), 'bold': bool, 'align': str, 'font': str}, f'headings[{i}]', ('size', 'bold', 'align', 'font'))
+    for section in ('cover', 'titlePage'):
+        for i, item in enumerate(cfg.get(section, {}).get('layout', [])):
+            if isinstance(item, dict):
+                allowed = {'pair', 'blank', 'text', 'info', 'size', 'bold', 'after', 'font', 'image', 'px', '_注', '_image'}
+                warnings.extend(f'{section}.layout[{i}].{k} 是未知键。' for k in item if k not in allowed and not k.startswith('_'))
+    weights = cfg.get('table', {}).get('columnWeightsByCaption', {})
+    for caption, values in weights.items():
+        if not isinstance(caption, str) or not isinstance(values, list) or not values or any(
+                not isinstance(v, (int, float)) or isinstance(v, bool) or not math.isfinite(v) or v <= 0
+                for v in values):
+            raise BuildError(f'配置项 table.columnWeightsByCaption[{caption!r}] 必须是非空的正数权重数组。')
+    return warnings
 
 
 class Builder:
@@ -142,6 +209,7 @@ class Builder:
         self.parts = []      # (文件名, 内容类型, xml)
         self.headings = []   # (级别, 文字)，用于书签和预填目录
         self.docpr = 0
+        self.used_table_captions = set()
 
     def rel(self, p):
         return p if os.path.isabs(p) else os.path.join(self.base, p)
@@ -216,7 +284,8 @@ class Builder:
             full = os.path.join(self.img, f)
         if not full.lower().endswith('.png'):
             raise BuildError('图片须为 PNG：' + full)
-        data = open(full, 'rb').read()
+        with open(full, 'rb') as f:
+            data = f.read()
         w, h = png_size(data)
         W = self.fig.get('widthsPx', {}).get(num) or jsround(self.fig.get('defaultWidthCm', 14.5) / 2.54 * 96)
         H = jsround(W * h / w)
@@ -248,9 +317,10 @@ class Builder:
         overrides = T.get('columnWeightsByCaption', {})
         configured = overrides.get(caption) if caption else None
         if configured is not None:
+            self.used_table_captions.add(caption)
             if (not isinstance(configured, list) or len(configured) != ncol
                     or any(not isinstance(w, (int, float)) or not math.isfinite(w) or w <= 0 for w in configured)):
-                raise ValueError(f'表格列宽配置无效：{caption!r}。需要 {ncol} 个正数相对权重。')
+                raise BuildError(f'表格列宽配置无效：{caption!r}。需要 {ncol} 个正数相对权重。')
             wts = [float(w) for w in configured]
         else:
             wts = []
@@ -457,7 +527,9 @@ class Builder:
             elif it.get('image'):
                 p = self.rel(it['image']); ext = os.path.splitext(p)[1].lower().lstrip('.').replace('jpeg', 'jpg')
                 px = it.get('px', 113)
-                out.append(Para(self.drawing(open(p, 'rb').read(), ext, px, px), jc=jc('center')))
+                with open(p, 'rb') as f:
+                    data = f.read()
+                out.append(Para(self.drawing(data, ext, px, px), jc=jc('center')))
             elif it.get('rule'):
                 out.append(Para(pBdr='<w:pBdr><w:bottom w:val="single" w:sz="8" w:space="1" w:color="000000"/></w:pBdr>',
                                 ind='<w:ind w:left="600" w:right="600"/>'))
@@ -501,7 +573,8 @@ class Builder:
         p = os.path.join(self.src, name)
         if not os.path.exists(p):
             raise BuildError('找不到源稿：' + p)
-        return open(p, encoding='utf-8-sig').read()
+        with open(p, encoding='utf-8-sig') as f:
+            return f.read()
 
     def load_sources(self):
         """读全部源稿，返回 dict：abstract、chapters [(文件名, 文本)]、front、refs（可能为 None）、back [(文件名, 文本)]。"""
@@ -513,7 +586,7 @@ class Builder:
         return dict(abstract=self.read_src(fl.get('abstract', '摘要.md')),
                     front=[(e, self.read_src(e)) for e in self.cfg.get('extraFrontFiles', [])],
                     chapters=[(f, self.read_src(f)) for f in ch_files],
-                    refs=open(refs_file, encoding='utf-8-sig').read() if os.path.exists(refs_file) else None,
+                    refs=self.read_src(fl.get('references', '参考文献.md')) if os.path.exists(refs_file) else None,
                     back=[(e, self.read_src(e)) for e in self.cfg.get('extraBackFiles', [])])
 
     # ---------- 字数 ----------
@@ -672,7 +745,10 @@ def main(argv):
     sys.stdout.reconfigure(encoding='utf-8'); sys.stderr.reconfigure(encoding='utf-8')   # Windows 下输出被重定向时默认编码不是 UTF-8，打印中文会报错
     if len(argv) < 2:
         sys.exit('用法：python build_docx.py <配置.json> [输出.docx]')
-    cfg, base = load_config(argv[1])
+    try:
+        cfg, base = load_config(argv[1])
+    except (BuildError, json.JSONDecodeError, OSError) as e:
+        sys.exit(f'配置错误：{e}')
     b = Builder(cfg, base)
     out = argv[2] if len(argv) > 2 else b.rel(cfg['paths'].get('out', 'out.docx'))
     try:
@@ -681,6 +757,8 @@ def main(argv):
     except BuildError as e:
         sys.exit(str(e))
     print('已生成', out, '章数', len(sources['chapters']), '大小', os.path.getsize(out))
+    for caption in sorted(set(b.T.get('columnWeightsByCaption', {})) - b.used_table_captions):
+        print(f'配置警告：表格列宽未匹配到表题 {caption!r}；请核对完整表题和标点。', file=sys.stderr)
     print('\n汉字数（不含写作备注、图片行和章末待办；学校按 Word 字数统计的，以 Word 为准）：')
     for name, n in b.word_counts(sources):
         print(f'  {n:>7}  {name}')
