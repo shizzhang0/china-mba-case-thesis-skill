@@ -242,13 +242,22 @@ class Builder:
         size = self.T.get('outerRule8ths', 12) if kind == 'thick' else self.T.get('headRule8ths', 6)
         return f'<w:{side} w:val="single" w:sz="{size}" w:space="0" w:color="000000"/>'
 
-    def build_table(self, rows):
+    def build_table(self, rows, caption=None):
         T, text_w = self.T, self.text_w
-        ncol = len(rows[0]); wts = []
-        for j in range(ncol):
-            lens = [disp_len(r[j] or '') for r in rows]
-            mx, avg = max(lens), sum(lens) / len(lens)
-            wts.append(max(3, min(math.sqrt(mx) * 2 + avg, 60)))
+        ncol = len(rows[0])
+        overrides = T.get('columnWeightsByCaption', {})
+        configured = overrides.get(caption) if caption else None
+        if configured is not None:
+            if (not isinstance(configured, list) or len(configured) != ncol
+                    or any(not isinstance(w, (int, float)) or not math.isfinite(w) or w <= 0 for w in configured)):
+                raise ValueError(f'表格列宽配置无效：{caption!r}。需要 {ncol} 个正数相对权重。')
+            wts = [float(w) for w in configured]
+        else:
+            wts = []
+            for j in range(ncol):
+                lens = [disp_len(r[j] or '') for r in rows]
+                mx, avg = max(lens), sum(lens) / len(lens)
+                wts.append(max(3, min(math.sqrt(mx) * 2 + avg, 60)))
         tot = sum(wts)
         widths = [jsround(text_w * w / tot) for w in wts]
         mins = [jsround(n * 215 + 220) if (n := disp_len(h)) <= 6 else 0 for h in rows[0]]
@@ -297,6 +306,7 @@ class Builder:
         if cut is not None:
             L = L[:cut]
         blocks, title, i = [], '', 0
+        table_caption = None
         while i < len(L):
             l = L[i]
             m = re.match(r'^(#{1,3}) (.*)', l)
@@ -329,7 +339,8 @@ class Builder:
                     blocks.append(self.note_para(self.fig['notes'][n], True))
                 continue
             if l.startswith('【表'):
-                blocks.append(self.caption_para(re.sub(r'^【|】$', '', l.strip()), True)); i += 1; continue
+                table_caption = re.sub(r'^【|】$', '', l.strip())
+                blocks.append(self.caption_para(table_caption, True)); i += 1; continue
             if l.startswith('|'):
                 rows = []
                 while i < len(L) and L[i].startswith('|'):
@@ -339,7 +350,8 @@ class Builder:
                 n = max(len(r) for r in rows)
                 for r in rows:
                     r.extend([''] * (n - len(r)))
-                blocks.append(self.build_table(rows))
+                blocks.append(self.build_table(rows, table_caption))
+                table_caption = None
                 j = i
                 while j < len(L) and L[j].strip() == '':
                     j += 1

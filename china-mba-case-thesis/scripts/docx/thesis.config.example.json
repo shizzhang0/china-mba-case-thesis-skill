@@ -68,7 +68,8 @@
     "noteSize": "五号",
     "boldHeader": true,
     "outerRule8ths": 12,
-    "headRule8ths": 6
+    "headRule8ths": 6,
+    "columnWeightsByCaption": {}
   },
   "figures": {
     "filePrefix": "图",

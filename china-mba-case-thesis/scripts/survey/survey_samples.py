@@ -41,7 +41,7 @@ def analyze(path, kws):
     has_appendix = bool(re.search(r'^\s*附\s*录', t, re.M))
     kw = {k: t.count(k) for k in kws}
     words = len(re.findall(r'[一-鿿]', t))
-    return dict(pages=pages, chapters=chap, figs=len(figs), tabs=len(tabs), refs=nref, appendix=has_appendix, kw=kw, cn_chars=words)
+    return dict(pages=pages, chapters=chap, figs=len(figs), tabs=len(tabs), refs=nref, appendix=has_appendix, kw=kw, cn_chars=words, text_ok=bool(words))
 
 
 def main():
@@ -62,17 +62,28 @@ def main():
                     print('跳过', fn, e, file=sys.stderr)
     if not rows:
         sys.exit('没找到 PDF')
-    out = ['# 范文横向分析（自动统计，下限估计）', '',
-           '| 分组 | 论文 | 页数 | 汉字数(约) | 章数 | 图 | 表 | 文献 | 附录 | ' + ' | '.join(kws) + ' |',
-           '|' + '---|' * (9 + len(kws))]
+    out = ['# 范文横向分析（自动统计；仅描述当前样本）', '',
+           '> 自动统计是文本提取结果，不代表样本有代表性。汇总值按分组分别描述，不得直接当作写作规范；样本适用性由作者结合年份、院校、专业学位和案例类型判断。', '',
+           '| 分组 | 论文 | 文本提取 | 页数 | 汉字数(约) | 章数 | 图 | 表 | 文献 | 附录 | ' + ' | '.join(kws) + ' |',
+           '|' + '---|' * (10 + len(kws))]
     for r in rows:
-        out.append(f"| {r['group']} | {r['name'][:30]} | {r['pages']} | {r['cn_chars']//100*100} | {len(r['chapters'])} | {r['figs']} | {r['tabs']} | {r['refs']} | {'有' if r['appendix'] else '无'} | "
-                   + ' | '.join(str(r['kw'][k]) for k in kws) + ' |')
-    def med(key):
-        v = sorted(x[key] for x in rows); return v[len(v) // 2]
-    out += ['', f"中位数：页数 {med('pages')}，汉字数约 {med('cn_chars')//100*100}，图 {med('figs')}，表 {med('tabs')}，文献 {med('refs')}", '', '## 章节骨架', '']
+        out.append(f"| {r['group'] or '未分组'} | {r['name'][:30]} | {'可用' if r['text_ok'] else '不可用'} | {r['pages'] if r['text_ok'] else '—'} | {r['cn_chars']//100*100 if r['text_ok'] else '—'} | {len(r['chapters']) if r['text_ok'] else '—'} | {r['figs'] if r['text_ok'] else '—'} | {r['tabs'] if r['text_ok'] else '—'} | {r['refs'] if r['text_ok'] else '—'} | {'有' if r['appendix'] else '无' if r['text_ok'] else '—'} | "
+                   + ' | '.join(str(r['kw'][k]) if r['text_ok'] else '—' for k in kws) + ' |')
+    out += ['', '## 分组描述性中位数（仅供描述，不作为目标值）', '']
+    groups = sorted(set(r['group'] or '未分组' for r in rows))
+    for group in groups:
+        valid = [r for r in rows if (r['group'] or '未分组') == group and r['text_ok']]
+        if not valid:
+            out.append(f'- **{group}**：无可用文本，不能计算文本指标；扫描件请人工核对。')
+            continue
+        def med(key):
+            v = sorted(x[key] for x in valid); return v[len(v) // 2]
+        out.append(f"- **{group}**（可用文本 {len(valid)} 篇 / 收录 {sum((r['group'] or '未分组') == group for r in rows)} 篇）：页数 {med('pages')}，汉字数约 {med('cn_chars')//100*100}，图 {med('figs')}，表 {med('tabs')}，文献 {med('refs')}。是否可推广需人工判断。")
+    out += ['', '## 章节骨架', '']
     for r in rows:
-        out.append(f"**{r['name'][:30]}**（{r['group']}）"); out += [f'- {c}' for c in r['chapters']]; out.append('')
+        if not r['text_ok']:
+            continue
+        out.append(f"**{r['name'][:30]}**（{r['group'] or '未分组'}）"); out += [f'- {c}' for c in r['chapters']]; out.append('')
     text = '\n'.join(out)
     if a.out:
         open(a.out, 'w', encoding='utf-8').write(text); print('已写入', a.out)
