@@ -14,6 +14,8 @@
 
 ## 怎么用
 
+先看 [`START_HERE.md`](china-mba-case-thesis/START_HERE.md)：判断论文类型和当前任务，选标准或轻量路径。模板按需使用，不是入场清单。
+
 skill 本体是 `china-mba-case-thesis/` 这个文件夹。下面两种方式任选一种，对能读文件的 AI 助手都适用。
 
 **方式一：让 AI 直接读仓库。** 把这段话发给你的 AI 助手（它需要能打开网页链接）：
@@ -35,15 +37,16 @@ skill 本体是 `china-mba-case-thesis/` 这个文件夹。下面两种方式任
 README.md / LICENSE / CHANGELOG.md
 china-mba-case-thesis/  skill 本体
   LICENSE.txt           许可（与根目录 LICENSE 相同，复制 skill 文件夹时随之带走）
+  START_HERE.md         论文类型判断、轻量路径和按任务阅读入口
   SKILL.md              方法总纲：助手的角色与边界、六条原则、从哪里进入、每次开工先做的事、文件管理、六个阶段
-  references/           各阶段细则：对标与搭框架、取证、访谈与问卷、成文、合稿与检查、整体审查清单、源稿约定、文件管理
+  references/           各阶段细则：对标与搭框架、取证、访谈与问卷、成文、合稿与检查、整体审查清单、源稿约定、文件管理、负例与改写
   scripts/              配套脚本（见 scripts/README.md）
     snapshot.py           大改前打 zip 快照，代替复制加后缀
     survey/               范文横向统计（页数、章节、图表数、关键词频次）
     docx/                 Markdown 源稿 → 学位论文 Word（只用 Python 标准库），学校格式写在配置文件里
     figures/              示意图辅助库与数据图示例（matplotlib），全文统一风格
     check/                文本对比、PDF 版面抽查、目录文字与页码核对
-  templates/            决定日志、主题关系、理论映射、证据台账/缺口决策、导师进度、范文分析、章节源稿
+  templates/            决定日志、主题关系、理论映射、证据台账/缺口决策、导师进度、AI 使用说明、范文分析、章节源稿
   example/              虚构企业 YT 公司的示例源稿（含一章完整的现状与问题分析）和绘图脚本
 ```
 
