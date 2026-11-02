@@ -20,7 +20,7 @@ skill 本体是 `china-mba-case-thesis/` 这个文件夹。下面两种方式任
 
 **方式一：让 AI 直接读仓库。** 把这段话发给你的 AI 助手（它需要能打开网页链接）：
 
-> 请阅读 https://raw.githubusercontent.com/shizzhang0/china-mba-case-thesis-skill/main/china-mba-case-thesis/SKILL.md ，按其中的方法协助我写论文。用到哪个阶段，再读它提到的 `references/`、`templates/` 里的文件，地址是把文件路径接在 https://raw.githubusercontent.com/shizzhang0/china-mba-case-thesis-skill/main/china-mba-case-thesis/ 后面。
+> 请先阅读方法说明 https://raw.githubusercontent.com/shizzhang0/china-mba-case-thesis-skill/main/china-mba-case-thesis/SKILL.md 和快速入口 https://raw.githubusercontent.com/shizzhang0/china-mba-case-thesis-skill/main/china-mba-case-thesis/START_HERE.md ，再按方法协助我写论文。后续需要 `references/` 或 `templates/` 中的文件时，把文件路径接在 https://raw.githubusercontent.com/shizzhang0/china-mba-case-thesis-skill/main/china-mba-case-thesis/ 后面读取。
 
 这里给的是 raw 地址（纯文本），AI 读到的是原始 Markdown，不会把表格读乱。
 
@@ -35,6 +35,8 @@ skill 本体是 `china-mba-case-thesis/` 这个文件夹。下面两种方式任
 
 ```
 README.md / LICENSE / CHANGELOG.md
+.github/               仓库维护用的 GitHub Actions 配置（不属于 skill 本体）
+tests/                 仓库维护用的自动化测试（不属于 skill 本体）
 china-mba-case-thesis/  skill 本体
   LICENSE.txt           许可（与根目录 LICENSE 相同，复制 skill 文件夹时随之带走）
   START_HERE.md         论文类型判断、轻量路径和按任务阅读入口
@@ -50,7 +52,9 @@ china-mba-case-thesis/  skill 本体
   example/              虚构企业 YT 公司的示例源稿（含一章完整的现状与问题分析）和绘图脚本
 ```
 
-## 方法的核心
+## 方法核心与底层原则
+
+SKILL 中的底层原则为六条。下面列出七项面向使用者的实践要点；理论映射作为单独的操作要求列出，不另算作底层原则。
 
 1. 证据先于文字：实质判断可追溯；证据拿不到时按替代、缩小范围、降低结论强度或调整研究设计处理，不把工作占位带入送审稿
 2. 对标本地标准：导师推荐论文和本院范文优先；样本不足时只作描述，不把小样本统计当规范
