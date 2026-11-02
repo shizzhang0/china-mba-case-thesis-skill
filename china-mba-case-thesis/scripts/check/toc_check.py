@@ -1,10 +1,9 @@
 """核对 Word 目录：
   1）文字：目录条目与正文标题是否一致（能查出改了标题、目录却没更新）；
-  2）页码：用 Word 保存时留下的分页标记（lastRenderedPageBreak）推算每个标题实际所在页，与目录页码比对。
+  2）页码：文件有分页标记（lastRenderedPageBreak）时，推算标题所在页并与目录页码比对。
     python3 toc_check.py 论文.docx
-前提：文件必须是在 Word 里“更新整个目录”之后保存的。脚本刚生成、未经 Word 保存的文件没有目录内容，也没有分页标记。
-局限：Word 不在表格内部留分页标记。脚本会在“标题前经过了表格且目录正好多 1 页”时按跨页表格自动修正并提示；
-      其他差异需到 Word 里核实。
+前提：文件须在排版软件中“更新整个目录”后保存。脚本刚生成、未经 Word/WPS 保存的文件通常没有目录结果或分页标记。
+局限：Word/WPS 对分页标记的写入可能不同；无标记时只核对文字，页码状态为“未验证”。Word 不在表格内部留分页标记。脚本会在“标题前经过了表格且目录正好多 1 页”时按跨页表格自动修正并提示；其他差异需在实际排版软件中核实。
 """
 import sys, re, zipfile
 import xml.etree.ElementTree as ET
@@ -106,9 +105,10 @@ def main(path):
 
     # 2）页码核对
     if not has_marks:
-        print('【页码】文件里没有分页标记，跳过页码核对（请在 Word 中更新目录并保存后再查）。')
+        print('【页码状态】未验证：文件里没有分页标记，无法推算页码。请在 Word/WPS 中更新整个目录、保存后重试；若仍无标记，请按目录条目在排版软件中人工抽查并记录环境。')
         return
-    print('【页码】')
+    print('【页码状态】使用文件中的分页标记进行推算；这不是对所有分页情形的独立证明，差异及跨页表格仍需人工核实。')
+    print('【页码推算】')
     corr, prev_delta, bad, fixed = 0, 0, 0, 0   # corr：因跨页表格累计补上的页数
     for l, b, shown in toc:
         act = bm_page.get(b)
@@ -130,6 +130,10 @@ def main(path):
             prev_delta = delta
         bad += delta != 0
     print(f'  共 {len(toc)} 条，{len(toc) - bad} 条与推算一致' + (f'（其中 {fixed} 处按跨页表格修正）' if fixed else '') + '。')
+    if bad:
+        print('【页码状态】需人工复核：存在推算差异。')
+    else:
+        print('【页码状态】推算一致；请抽查分页标记密集区、分节处和跨页表格。')
 
 
 if __name__ == '__main__':

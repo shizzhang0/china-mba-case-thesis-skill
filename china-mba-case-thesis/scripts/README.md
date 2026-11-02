@@ -8,7 +8,7 @@
 |---|---|---|
 | `snapshot.py` | 大改前把工作目录打成一个带日期和事件名的 zip 放进 `归档/`，代替复制加后缀 | 标准库 |
 | `survey/survey_samples.py` | 阶段 1 用：批量统计范文 PDF 的页数、章节骨架、图表数、文献数、关键词频次，输出一张表 | pdftotext（poppler / xpdf）或 `pip install pdfminer.six` |
-| `docx/build_docx.py` | 按配置把 Markdown 源稿整份生成 Word：分节、罗马/阿拉伯页码、页眉页脚、目录（条目预填，页码由 Word 更新）、标题样式、三线表、图表题、图注表注、角标、参考文献、附录与致谢；生成后打印各章汉字数。也可在别的脚本里导入（用法见文件开头说明） | 标准库 |
+| `docx/build_docx.py` | 按配置把 Markdown 源稿整份生成 Word：分节、罗马/阿拉伯页码、页眉页脚、目录（条目预填，页码由排版软件更新）、标题样式、三线表、图表题、图注表注、角标、参考文献、附录与致谢；表格默认按内容估算列宽，也支持按表题配置列宽；生成后打印各章汉字数。也可在别的脚本里导入（用法见文件开头说明） | 标准库 |
 | `docx/thesis.config.example.json` | 配置样例：路径、学校格式、封面版式。复制一份改成本校规范和自己的信息 | — |
 | `figures/figlib.py` | 示意图辅助库：方框、折线箭头、菱形、编号圆点、红叉；统一字体与配色；输出 SVG 和 2 倍分辨率 PNG | matplotlib |
 | `figures/example_diagram.py` | 示意图写法示例（一图一脚本） | 同上 |
@@ -16,7 +16,7 @@
 | `figures/extract_cjk_font.py` | Linux 上从 CJK 字体集合（.ttc）取出简体中文字形，供 matplotlib 使用；Windows 有宋体时不需要 | fonttools |
 | `check/docx_text_diff.py` | 两版 docx 按句对比正文文字，确认只有预期改动 | 标准库 |
 | `check/render_pdf.py` | LibreOffice 更新目录后导出 PDF，可出缩略图，抽查版面（页码以 Word 为准） | LibreOffice 及其 Python UNO；缩略图需 poppler 的 pdftoppm |
-| `check/toc_check.py` | 核对 Word 保存后的目录：条目文字与正文标题是否一致；页码与分页标记推算是否一致，跨页表格自动修正 | 标准库 |
+| `check/toc_check.py` | 核对 DOCX 目录：条目文字与正文标题是否一致；存在 `lastRenderedPageBreak` 时推算页码，跨页表格自动修正；没有标记时明确报告“页码未验证” | 标准库 |
 
 ## 平台说明
 
@@ -48,4 +48,11 @@ python3 ../snapshot.py ../../example 试跑
 - 匹配 `cutSectionPattern` 的二级标题（默认“## 本章待…”）及其后内容不输出
 - `extraFrontFiles` 里的源稿排在摘要之前；`extraBackFiles` 里的源稿（附录、致谢等）排在参考文献之后，各占一节，一级标题进目录，页眉用该标题
 - 汉字数只数汉字，不含写作备注、图片行和章末待办，与 Word 的“字数统计”口径不完全相同
-- 目录条目按标题预填，但页码要 Word 计算：在 Word 里解除受保护视图 → 更新整个目录 → 原文件名保存
+- 目录条目按标题预填，但页码要排版软件计算：在 Word/WPS 里解除受保护视图（如有）→ 更新整个目录 → 原文件名保存；页码核对结果仍按本 README 的状态规则报告
+- 表格列宽默认按单元格文字长度估算；需要调整时，在配置的 `table.columnWeightsByCaption` 按完整表题（如 `表 3.1　指标对比`）设置相对权重，例如 `[1, 2, 3]`。权重数量必须与表格列数一致且都为正数；调整源配置后重新生成，避免直接改 Word 导致下次重建丢失。
+
+## WPS 与目录页码
+
+`toc_check.py` 可检查 DOCX 中保存的目录文字。页码推算依赖排版软件写入 `lastRenderedPageBreak`；Word 与 WPS 的 DOCX 保存结果可能不同，项目不保证两者都会写入该标记。脚本没有标记时会输出“页码未验证”，这不等于页码错误，也不等于页码正确。
+
+若在 WPS 中工作：更新整个目录并保存后运行脚本。若仍显示“未验证”，在 WPS 中逐项对照目录和正文页码；至少检查各章节首个标题、分节/页码重启处、跨页表格之后的标题，以及发现过版面变化的页面。在交付记录中写明“文字核对结果”和“页码核验状态”，不得把未验证描述为通过。Word 环境同样遵守此状态标记和人工复核要求。
