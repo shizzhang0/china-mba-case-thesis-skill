@@ -3,7 +3,7 @@ name: china-mba-case-thesis
 description: 中国高校 MBA 及管理类专硕单企业案例学位论文的写作辅助：对标范文、搭框架、取证、分章成文、生成 Word、按导师意见迭代；适用于论文写作、修改、排版、参考文献核对和图表任务。强调证据可追溯、作者确认判断、Markdown 源稿重建 Word。另附绘图、范文统计、目录与引用核对、快照脚本；也可用于替他人审稿。不适用于定量实证、多案例比较、本科论文或期刊论文；不提供代写或规避 AIGC 检测服务。
 license: MIT（见 LICENSE.txt）
 metadata:
-  version: 0.5.0
+  version: 0.5.1
 ---
 
 # 中国 MBA 案例型学位论文写作辅助方法
