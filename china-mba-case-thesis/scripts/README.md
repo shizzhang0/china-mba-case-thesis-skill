@@ -17,8 +17,8 @@
 | `check/docx_text_diff.py` | 两版 docx 按句对比正文文字，确认只有预期改动 | 标准库 |
 | `check/render_pdf.py` | LibreOffice 更新目录后导出 PDF，可出缩略图，抽查版面（页码以 Word 为准） | LibreOffice 及其 Python UNO；缩略图需 poppler 的 pdftoppm |
 | `check/toc_check.py` | 核对 DOCX 目录：条目文字与正文标题是否一致；存在 `lastRenderedPageBreak` 时推算页码，跨页表格自动修正；没有标记时明确报告“页码未验证” | 标准库 |
-| `check/ref_check.py` | 核对源稿角标与参考文献表：缺号、未引用、首次出现顺序、文献表编号与疑似重复条目、疑似漏加上标的 `[n]`；列出每条文献被引的位置和句子，标出只在 `[3-15]` 这类区间里出现的文献，供人工判断引用是否相干。解析规则与 `build_docx.py` 一致 | 标准库 |
-| `check/crossref_check.py` | 把英文文献的题名（有 DOI 的用 DOI）批量送 Crossref，比对第一作者、年、卷、期、页码，输出《参考文献核对清单》初稿：通过 / 有出入 / 仅相近 / 未查到 / 跳过（中文）/ 查询失败。只有完全吻合才算通过。会把题名、第一作者和 DOI 发给 api.crossref.org；需联网 | 标准库 |
+| `check/ref_check.py` | 核对角标与参考文献表：缺号、未引用、首次出现顺序（报出全部问题并归并到提前出现的编号）、文献表编号与疑似重复条目；列出每条文献被引的位置和句子，标出只在 `[3-15]` 这类区间里出现的文献，供人工判断引用是否相干。`--terms` 列出关键词与同一分句的角标，查同一理论引了不同编号。输入可以是源稿目录，也可以是别人的整篇 md 或 docx（在“参考文献”标题处自动切开；docx 读上标格式的 `[n]`，位置里的行号是段落序号）；`--plain` 把裸 `[n]` 当角标，正文没有 `<sup>` 却有裸 `[n]` 时自动启用 | 标准库 |
+| `check/crossref_check.py` | 把英文文献的题名（有 DOI 的用 DOI）批量送 Crossref，比对第一作者、年、卷、期、页码（Crossref 只有文章编号时与文章编号比对），输出《参考文献核对清单》初稿：通过 / 有出入 / 仅相近 / 未查到 / 跳过（中文）/ 查询失败。只有完全吻合才算通过。会把题名、第一作者和 DOI 发给 api.crossref.org；需联网 | 标准库 |
 
 ## 平台说明
 
@@ -39,6 +39,7 @@ cd ../docx && python3 build_docx.py thesis.config.example.json 示例.docx
 python3 ../check/docx_text_diff.py 示例.docx 示例.docx
 python3 ../snapshot.py ../../example 试跑
 python3 ../check/ref_check.py ../../example/src         # 角标与文献表核对
+python3 ../check/ref_check.py 示例.docx --terms PDCA      # 也能直接查整篇 docx 或 md
 ```
 
 示例源稿在 `example/src/`，演示了源稿约定的全部写法。
