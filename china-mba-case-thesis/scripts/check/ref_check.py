@@ -10,12 +10,12 @@
   4）文献表本身：编号重复、不连续，疑似重复条目（题名相同）；
   5）疑似漏加上标：源稿约定下，正文里不在 <sup> 内的 [n]。
 另列出每条文献被引的位置（文件、行号、所在小节和句子），供人工判断引用是否与所在句相干、是否为凑“全部被引”而挂角标；
-只在“[3-15]”这类区间里出现过的文献单独标出。--terms 列出每个关键词与哪些角标出现在同一分句，用来发现“同一理论引了不同编号”。
+只在“[3-15]”这类区间里出现过的文献单独标出。--terms 列出每个关键词关联的角标（优先取同一分句里紧跟其后的那个），用来发现“同一理论引了不同编号”。
 角标写法：
   源稿约定：<sup>[1]</sup>、<sup>[1][3]</sup>、<sup>[1,3]</sup>、<sup>[2-4]</sup>、<sup>[2]-[4]</sup>（-、–、—、~ 均可）；
   --plain：正文里的裸 [n] 也当角标（别人的稿件常这样写）。正文没有任何 <sup> 角标、却有裸 [n] 时自动按 --plain 处理，并在报告里注明；
-  docx：上标格式的 [n] 当角标，非上标的裸 [n] 按上面的规则处理。
-整篇稿件：取最后一个只写“参考文献”的标题行或段落（避开目录里的同名条目），到下一个标题或“附录 / 致谢”为止作为文献表，其余为正文；
+  docx：上标格式的 [n] 当角标（直接设置或通过字符样式设置均可），非上标的裸 [n] 按上面的规则处理；文本框里的文字单独成段，不重复计入。
+整篇稿件：取最后一个只写“参考文献”（或“主要参考文献”“参考文献：”，或 --refs-title 指定的文字）的标题行或段落（避开目录里的同名条目），到下一个标题或“附录 / 致谢”为止作为文献表，其余为正文；
 文献表用 Word 自动编号、没有写出 [n] 时，按段落顺序编号并在报告里提示。
 源稿约定下以 > 开头的写作备注（资料来源、注除外）、“## 本章待…”之后的内容和代码块不检查，与 build_docx.py 一致。
 给目录时按“第N章”排序，其后是其他源稿（附录等）；摘要默认不参与顺序检查，但其中的角标会被报告。
@@ -39,11 +39,12 @@ PAIR_RANGE_RE = re.compile(r'\[(\d+)\]\s*[-–—~～]\s*\[(\d+)\]')
 REF_LINE_RE = re.compile(r'^\s*\[(\d+)\]\s*(.*\S)?\s*$')
 BARE_CITE_RE = re.compile(r'(?<!!)\[\d+(?:\s*[-–—~～,，、]\s*\d+)*\](?:\s*[-–—~～]\s*\[\d+\])?(?!\()')
 HEADING_RE = re.compile(r'^(#{1,6})\s+(.*\S)')
-REFS_TITLE_RE = re.compile(r'^(#{1,6}\s*)?参\s*考\s*文\s*献\s*$')
+REFS_TITLE_RE = re.compile(r'^(#{1,6}\s*)?(主要)?参\s*考\s*文\s*献\s*[:：]?\s*$')
 AFTER_REFS_RE = re.compile(r'^(#{1,6}\s+\S|附\s*录|致\s*谢|攻读|作者简介|后\s*记)')
 SENT_END = '。！？；!?;'
 ORDER_SHOW = 10
 W = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
+MC_FALLBACK = '{http://schemas.openxmlformats.org/markup-compatibility/2006}Fallback'
 
 
 def parse_cite(inner):
@@ -145,7 +146,8 @@ CLAUSE_END = '，,' + SENT_END
 
 
 def scan_terms(files, terms, plain):
-    """{关键词: OrderedDict{编号: [位置...]}}。每处关键词取同一分句里的角标；分句里没有时，取同一句中它后面的第一个角标。"""
+    """{关键词: OrderedDict{编号: [位置...]}}。每处关键词取同一分句里紧跟其后的那个角标；
+    其后没有时取分句里的全部角标；分句里没有时取同一句中它后面的第一个角标。"""
     out = OrderedDict((t, OrderedDict()) for t in terms)
     for name, md in files:
         for ln, line in body_lines(md):
@@ -159,7 +161,9 @@ def scan_terms(files, terms, plain):
                     c0 = max(line.rfind(ch, 0, k) for ch in CLAUSE_END) + 1
                     c1 = min([e for e in (line.find(ch, m.end()) for ch in CLAUSE_END) if e >= 0] or [len(line)])
                     s1 = min([e for e in (line.find(ch, m.end()) for ch in SENT_END) if e >= 0] or [len(line)])
-                    hit = [c for c in cs if c0 <= c[0] <= c1] or [c for c in cs if m.end() <= c[0] <= s1][:1]
+                    hit = ([c for c in cs if m.end() <= c[0] <= c1][:1]
+                           or [c for c in cs if c0 <= c[0] <= c1]
+                           or [c for c in cs if m.end() <= c[0] <= s1][:1])
                     for _, nums, _ in hit:
                         for n in nums:
                             out[t].setdefault(n, []).append(f'{name}:{ln}')
@@ -180,7 +184,8 @@ def parse_refs(md):
             continue
         refs[n] = text
     if not refs:
-        entries = [l.strip() for l in lines if l.strip() and not REFS_TITLE_RE.match(l.strip())]
+        entries = [l.strip() for l in lines
+                   if l.strip() and not is_refs_title(l) and not l.lstrip().startswith('#')]
         if entries:
             for k, text in enumerate(entries, 1):
                 refs[k] = text
@@ -210,42 +215,96 @@ def title_key(entry):
     return re.sub(r'[\W_]+', '', t).lower()
 
 
-def split_single(text):
-    """整篇稿件 → (正文, 文献表)。正文里文献表所在行换成空行，保持行号不变。找不到“参考文献”标题时返回 (原文, None)。"""
+def is_refs_title(line, title=None):
+    s = line.strip()
+    if title:
+        squash = lambda x: re.sub(r'\s+', '', re.sub(r'^#{1,6}', '', x))
+        return squash(s) == squash(title)
+    return bool(REFS_TITLE_RE.match(s))
+
+
+def split_single(text, title=None):
+    """整篇稿件 → (正文, 文献表)。正文里文献表所在行换成空行，保持行号不变。找不到文献表标题时返回 (原文, None)。
+    title：稿件里文献表标题的文字；不给时认“参考文献”“主要参考文献”“参考文献：”等写法。"""
     lines = text.splitlines()
-    starts = [k for k, l in enumerate(lines) if REFS_TITLE_RE.match(l.strip())]
+    starts = [k for k, l in enumerate(lines) if is_refs_title(l, title)]
     if not starts:
         return text, None
     a = starts[-1]
     b = next((k for k in range(a + 1, len(lines)) if AFTER_REFS_RE.match(lines[k].strip())), len(lines))
-    refs = '\n'.join(lines[a:b])
+    refs = '\n'.join(lines[a + 1:b])   # 不含标题行：自定义标题不会被当成自动编号文献表的第一条
     body = lines[:a] + [''] * (b - a) + lines[b:]
     return '\n'.join(body), refs
 
 
+def docx_paragraphs(el):
+    """按文档顺序列出段落；文本框里的段落排在所在段落之后。跳过 mc:Fallback（文本框的旧版副本），避免重复。"""
+    for ch in el:
+        if ch.tag == MC_FALLBACK:
+            continue
+        if ch.tag == W + 'p':
+            yield ch
+        yield from docx_paragraphs(ch)
+
+
+def docx_runs(p):
+    """段落自身的文字块；不进入文本框（txbxContent）和 mc:Fallback，它们作为单独的段落处理。"""
+    for ch in p:
+        if ch.tag in (W + 'txbxContent', MC_FALLBACK, W + 'p'):
+            continue
+        if ch.tag == W + 'r':
+            yield ch
+        else:
+            yield from docx_runs(ch)
+
+
+def docx_styles(styles):
+    """(段落样式 → 标题级别, 设为上标的字符样式集合)。字符样式沿 basedOn 继承。"""
+    level, sup_direct, based = {}, {}, {}
+    if styles is None:
+        return level, set()
+    for st in styles.iter(W + 'style'):
+        sid = st.get(W + 'styleId')
+        if not sid:
+            continue
+        name = st.find(W + 'name')
+        nm = (name.get(W + 'val') if name is not None else '') or ''
+        m = re.match(r'(?i)(?:heading|标题)\s*(\d)$', nm.strip())
+        if m:
+            level[sid] = int(m.group(1))
+        va = st.find(W + 'rPr/' + W + 'vertAlign')
+        if va is not None:
+            sup_direct[sid] = va.get(W + 'val') == 'superscript'
+        bo = st.find(W + 'basedOn')
+        if bo is not None:
+            based[sid] = bo.get(W + 'val')
+
+    def is_sup(sid, depth=0):
+        if sid in sup_direct:
+            return sup_direct[sid]
+        return depth < 10 and sid in based and is_sup(based[sid], depth + 1)
+    return level, {sid for sid in set(sup_direct) | set(based) if is_sup(sid)}
+
+
 def docx_to_md(path):
-    """docx → 近似 Markdown：标题样式转为 #，上标文字包进 <sup>，每段一行。"""
+    """docx → 近似 Markdown：标题样式转为 #，上标文字（直接设置或字符样式）包进 <sup>，每段一行。"""
     with zipfile.ZipFile(path) as z:
         doc = ET.fromstring(z.read('word/document.xml'))
         styles = ET.fromstring(z.read('word/styles.xml')) if 'word/styles.xml' in z.namelist() else None
-    level = {}
-    if styles is not None:
-        for st in styles.iter(W + 'style'):
-            sid = st.get(W + 'styleId')
-            name = st.find(W + 'name')
-            nm = (name.get(W + 'val') if name is not None else '') or ''
-            m = re.match(r'(?i)(?:heading|标题)\s*(\d)$', nm.strip())
-            if sid and m:
-                level[sid] = int(m.group(1))
+    level, sup_styles = docx_styles(styles)
     out = []
-    for p in doc.iter(W + 'p'):
+    for p in docx_paragraphs(doc):
         ps = p.find(W + 'pPr/' + W + 'pStyle')
         lv = level.get(ps.get(W + 'val')) if ps is not None else None
         parts, sup = [], []
-        for r in p.iter(W + 'r'):
+        for r in docx_runs(p):
             va = r.find(W + 'rPr/' + W + 'vertAlign')
-            is_sup = va is not None and va.get(W + 'val') == 'superscript'
-            t = ''.join(x.text or '' for x in r.iter(W + 't'))
+            rs = r.find(W + 'rPr/' + W + 'rStyle')
+            if va is not None:
+                is_sup = va.get(W + 'val') == 'superscript'
+            else:
+                is_sup = rs is not None and rs.get(W + 'val') in sup_styles
+            t = ''.join(x.text or '' for x in r.findall(W + 't'))
             if not t:
                 continue
             if is_sup:
@@ -412,6 +471,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description='核对引文角标与参考文献表')
     ap.add_argument('paths', nargs='+', help='源稿目录；按正文顺序列出的源稿文件；或一整篇 .md/.docx 稿件')
     ap.add_argument('--refs', help='参考文献源稿（目录模式默认为目录下的 参考文献.md；整篇稿件可不给）')
+    ap.add_argument('--refs-title', help='整篇稿件里文献表标题的文字，默认认“参考文献”“主要参考文献”“参考文献：”')
     ap.add_argument('-o', '--output', help='把报告写入 Markdown 文件（默认打印）')
     ap.add_argument('--plain', action='store_true', help='正文里的裸 [n] 也当角标（不按源稿约定书写的稿件）')
     ap.add_argument('--terms', help='逗号分隔的关键词，列出与它们同一分句出现的角标，如 Kraljic,COSO,BPR')
@@ -431,9 +491,10 @@ def main(argv=None):
         p = a.paths[0]
         if not os.path.exists(p):
             ap.error(f'找不到文件：{p}')
-        body, refs_md = split_single(read(p))
+        body, refs_md = split_single(read(p), a.refs_title)
         if refs_md is None:
-            ap.error('稿件里找不到只写“参考文献”的标题行；用 --refs 另给文献表')
+            ap.error('稿件里找不到文献表标题行（“参考文献”“主要参考文献”等，须单独成行）；'
+                     '用 --refs-title 指定稿件里的标题文字，或用 --refs 另给文献表')
         files = [(os.path.basename(p), body)]
     else:
         if not a.refs:

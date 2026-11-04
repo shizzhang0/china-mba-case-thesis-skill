@@ -156,6 +156,22 @@ class ExternalDraftTests(unittest.TestCase):
         self.assertEqual([3, 5], list(r['terms']['Kraljic']))
         self.assertEqual([], list(r['terms']['BPR']))
 
+    def test_terms_prefer_nearest_following_citation(self):
+        md = '本文结合供应商全生命周期管理理论[41][43]和Kraljic矩阵[12]，构建分析框架。根据[7]的COSO框架，设计控制点。'
+        refs = ''.join(f'[{n}] 题{n}[J].\n' for n in range(1, 44))
+        r = ref_check.check([('a.md', md)], refs, plain=True, terms=['Kraljic', 'COSO'])
+        self.assertEqual([12], list(r['terms']['Kraljic']))
+        self.assertEqual([7], list(r['terms']['COSO']))   # 其后没有角标时退回整个分句
+
+    def test_refs_title_variants(self):
+        for title in ('主要参考文献', '参考文献：', '## 参考文献:'):
+            body, refs = ref_check.split_single(f'正文[1]。\n{title}\n[1] 甲. 题一[J]. 刊, 2020.\n')
+            self.assertIsNotNone(refs, title)
+            self.assertEqual([1], list(ref_check.parse_refs(refs)[0]))
+        self.assertIsNone(ref_check.split_single('正文[1]。\nReferences\n[1] A. B[J].\n')[1])
+        body, refs = ref_check.split_single('正文[1]。\nReferences\nA. B[J]. 2020.\n', title='References')
+        self.assertEqual({1: 'A. B[J]. 2020.'}, dict(ref_check.parse_refs(refs)[0]))
+
     def test_auto_numbered_reference_list(self):
         refs, issues = ref_check.parse_refs('参考文献\n甲. 题一[J]. 刊, 2020.\n乙. 题二[J]. 刊, 2020.\n')
         self.assertEqual([1, 2], list(refs))
@@ -197,6 +213,30 @@ class ExternalDraftTests(unittest.TestCase):
         self.assertIn('只认 <sup> 角标', text)
         self.assertIn('首次出现顺序：1', text)
         self.assertIn('稿件.docx:2 [9]', text)
+
+    def test_docx_character_style_superscript_and_textboxes(self):
+        ns = ('xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
+              'xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"')
+        cite_style = '<w:rPr><w:rStyle w:val="Cite"/></w:rPr>'
+        textbox = ('<w:txbxContent><w:p><w:r><w:t>图中文字</w:t></w:r></w:p></w:txbxContent>')
+        drawing = ('<w:r><mc:AlternateContent><mc:Choice Requires="wps"><w:drawing>' + textbox
+                   + '</w:drawing></mc:Choice><mc:Fallback><w:pict>' + textbox
+                   + '</w:pict></mc:Fallback></mc:AlternateContent></w:r>')
+        doc = (f'<w:document {ns}><w:body>'
+               '<w:p><w:r><w:t>甲说</w:t></w:r><w:r>' + cite_style + '<w:t>[1]</w:t></w:r>'
+               '<w:r><w:t>。</w:t></w:r>' + drawing + '</w:p>'
+               '</w:body></w:document>')
+        styles = (f'<w:styles {ns}>'
+                  '<w:style w:type="character" w:styleId="Sup"><w:rPr><w:vertAlign w:val="superscript"/></w:rPr></w:style>'
+                  '<w:style w:type="character" w:styleId="Cite"><w:basedOn w:val="Sup"/></w:style>'
+                  '</w:styles>')
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / 'a.docx'
+            with zipfile.ZipFile(path, 'w') as z:
+                z.writestr('word/document.xml', doc)
+                z.writestr('word/styles.xml', styles)
+            md = ref_check.read(str(path))
+        self.assertEqual(['甲说<sup>[1]</sup>。', '图中文字'], md.splitlines())
 
 
 def work(title, family, year, volume=None, issue=None, page=None, doi=None, article_number=None):
