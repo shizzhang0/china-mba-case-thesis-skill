@@ -3,6 +3,7 @@ import io
 import pathlib
 import tempfile
 import unittest
+import zipfile
 from contextlib import redirect_stdout, redirect_stderr
 
 
@@ -53,7 +54,18 @@ class RefCheckTests(unittest.TestCase):
         r = self.run_check([('第1章.md', '先引<sup>[2]</sup>，再引<sup>[1]</sup>，又引<sup>[9]</sup>。\n')])
         self.assertEqual([9], r['missing'])
         self.assertEqual([3], r['unused'])
-        self.assertTrue(r['order_issues'] and '[2]' in r['order_issues'][0])
+        self.assertEqual([1], [x['n'] for x in r['late']])
+        self.assertEqual(2, r['late'][0]['after'])
+
+    def test_all_order_problems_reported_and_grouped(self):
+        r = self.run_check([('第1章.md', '早引<sup>[3]</sup>。后来<sup>[1]</sup>和<sup>[2]</sup>。\n')])
+        self.assertEqual([1, 2], [x['n'] for x in r['late']])
+        text = ref_check.report(r)
+        self.assertIn('首次出现顺序：2', text)
+        self.assertIn('[3]（第1章.md:1 首次出现）之后才首次出现的编号 2 个', text)
+
+    def test_pair_range_form(self):
+        self.assertEqual(([2, 3, 4], True), ref_check.parse_cite('[2]-[4]'))
 
     def test_range_only_flagged_for_padding_review(self):
         r = self.run_check([('第1章.md', '研究很多<sup>[1-3]</sup>。甲说<sup>[1]</sup>。\n')])
@@ -92,10 +104,108 @@ class RefCheckTests(unittest.TestCase):
             self.assertIn('| [5] | 1 |', text)
 
 
-def work(title, family, year, volume=None, issue=None, page=None, doi=None):
-    return {'title': [title], 'author': [{'family': family, 'given': 'X'}],
-            'issued': {'date-parts': [[year]]}, 'volume': volume, 'issue': issue,
-            'page': page, 'container-title': ['Journal'], 'DOI': doi}
+WHOLE = """# 目录
+参考文献
+
+# 第1章 绪论
+研究很多[1][2]，采购组合模型由 Kraljic 提出[3]。见[4]-[5]。
+
+# 第2章 理论
+Kraljic 矩阵把物料分为四类[5]。
+# 参考文献
+[1] 甲. 题一[J]. 刊, 2020.
+[2] 乙. 题二[J]. 刊, 2020.
+[3] Kraljic P. Purchasing must become supply management[J]. HBR, 1983.
+[4] 丁. 题四[J]. 刊, 2020.
+[5] 戊. 题五[J]. 刊, 2020.
+[6] 己. 题六[J]. 刊, 2020.
+# 致谢
+谢谢。
+"""
+
+
+class ExternalDraftTests(unittest.TestCase):
+    def test_split_single_uses_last_refs_heading_and_keeps_line_numbers(self):
+        body, refs = ref_check.split_single(WHOLE)
+        self.assertEqual(6, len(ref_check.parse_refs(refs)[0]))
+        self.assertEqual(len(WHOLE.splitlines()), len(body.splitlines()))
+        self.assertIn('谢谢', body)
+        self.assertNotIn('[6] 己', body)
+
+    def test_bare_citations_auto_plain(self):
+        body, refs = ref_check.split_single(WHOLE)
+        r = ref_check.check([('论文.md', body)], refs)
+        self.assertTrue(r['auto_plain'])
+        self.assertEqual([6], r['unused'])
+        self.assertEqual([], r['missing'])
+        self.assertEqual([], r['late'])
+        self.assertEqual([], r['bare'])
+        self.assertIn('已自动按 --plain 处理', ref_check.report(r))
+
+    def test_bare_only_flagged_when_sup_present_unless_plain(self):
+        refs = '[1] a[J].\n[2] b[J].\n'
+        r = ref_check.check([('a.md', '甲<sup>[1]</sup>，乙[2]。')], refs)
+        self.assertFalse(r['plain'])
+        self.assertEqual(['[2]'], [b['text'] for b in r['bare']])
+        r = ref_check.check([('a.md', '甲<sup>[1]</sup>，乙[2]。')], refs, plain=True)
+        self.assertEqual([], r['unused'])
+
+    def test_terms_tie_keyword_to_its_clause(self):
+        body, refs = ref_check.split_single(WHOLE)
+        r = ref_check.check([('论文.md', body)], refs, terms=['Kraljic', 'BPR'])
+        self.assertEqual([3, 5], list(r['terms']['Kraljic']))
+        self.assertEqual([], list(r['terms']['BPR']))
+
+    def test_auto_numbered_reference_list(self):
+        refs, issues = ref_check.parse_refs('参考文献\n甲. 题一[J]. 刊, 2020.\n乙. 题二[J]. 刊, 2020.\n')
+        self.assertEqual([1, 2], list(refs))
+        self.assertIn('自动编号', issues[0])
+
+    def test_docx_superscript_citations(self):
+        ns = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
+        sup = '<w:rPr><w:vertAlign w:val="superscript"/></w:rPr>'
+
+        def para(*runs, style=None):
+            ppr = f'<w:pPr><w:pStyle w:val="{style}"/></w:pPr>' if style else ''
+            return '<w:p>' + ppr + ''.join(runs) + '</w:p>'
+
+        def run(t, is_sup=False):
+            return '<w:r>' + (sup if is_sup else '') + f'<w:t>{t}</w:t></w:r>'
+
+        doc = (f'<w:document {ns}><w:body>'
+               + para(run('第1章 绪论'), style='1')
+               + para(run('甲说'), run('[', True), run('2]', True), run('，乙说[9]。'))
+               + para(run('丙说'), run('[1]', True), run('。'))
+               + para(run('参考文献'), style='1')
+               + para(run('[1] 甲. 题一[J]. 刊, 2020.'))
+               + para(run('[2] 乙. 题二[J]. 刊, 2020.'))
+               + '</w:body></w:document>')
+        styles = f'<w:styles {ns}><w:style w:styleId="1"><w:name w:val="heading 1"/></w:style></w:styles>'
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / '稿件.docx'
+            with zipfile.ZipFile(path, 'w') as z:
+                z.writestr('word/document.xml', doc)
+                z.writestr('word/styles.xml', styles)
+            md = ref_check.read(str(path))
+            self.assertIn('# 第1章 绪论', md)
+            self.assertIn('<sup>[2]</sup>', md)
+            out = io.StringIO()
+            with redirect_stderr(io.StringIO()), redirect_stdout(out):
+                code = ref_check.main([str(path)])
+        self.assertEqual(1, code)   # [2] 先于 [1] 出现
+        text = out.getvalue()
+        self.assertIn('只认 <sup> 角标', text)
+        self.assertIn('首次出现顺序：1', text)
+        self.assertIn('稿件.docx:2 [9]', text)
+
+
+def work(title, family, year, volume=None, issue=None, page=None, doi=None, article_number=None):
+    w = {'title': [title], 'author': [{'family': family, 'given': 'X'}],
+         'issued': {'date-parts': [[year]]}, 'volume': volume, 'issue': issue,
+         'page': page, 'container-title': ['Journal'], 'DOI': doi}
+    if article_number:
+        w['article-number'] = article_number
+    return w
 
 
 class CrossrefParseTests(unittest.TestCase):
@@ -159,6 +269,29 @@ class CrossrefJudgeTests(unittest.TestCase):
         text = crossref_check.render(rows)
         self.assertIn('统计：通过 1，查询失败 1，跳过 1', text)
         self.assertIn('stub://1', text)
+
+    def test_article_number_instead_of_pages(self):
+        e = crossref_check.parse_entry('Smith J. Quality and trust: a study[J]. Journal, 2020, 5(2): 1-17.')
+        r = crossref_check.judge(e, [work('Quality and trust: a study', 'Smith', 2020, '5', '2', article_number='1234')])
+        self.assertEqual('有出入', r['status'])
+        self.assertIn('文章编号 1234', r['diffs'][0][2])
+        e = crossref_check.parse_entry('Smith J. Quality and trust: a study[J]. Journal, 2020, 5(2): 1234.')
+        r = crossref_check.judge(e, [work('Quality and trust: a study', 'Smith', 2020, '5', '2', article_number='1234')])
+        self.assertEqual('通过', r['status'])
+
+    def test_pages_unchecked_is_noted(self):
+        r = crossref_check.judge(self.E, [work('Quality and trust: a study', 'Smith', 2020, '5', '2')])
+        self.assertEqual('通过', r['status'])
+        self.assertIn('页码未比对', r['note'])
+
+    def test_surname_prefixes(self):
+        e = crossref_check.parse_entry('van der Berg J, Lee K. Quality and trust: a study[J]. Journal, 2020, 5(2): 10-20.')
+        self.assertEqual('van der Berg', e['first_family'])
+        for fam in ('van der Berg', 'Van Der Berg', 'Berg'):
+            r = crossref_check.judge(e, [work('Quality and trust: a study', fam, 2020, '5', '2', '10-20')])
+            self.assertEqual('通过', r['status'], fam)
+        r = crossref_check.judge(e, [work('Quality and trust: a study', 'Smith', 2020, '5', '2', '10-20')])
+        self.assertEqual('有出入', r['status'])
 
     def test_only_spec(self):
         self.assertEqual({1, 3, 4, 5}, crossref_check.parse_only('1,3-5'))

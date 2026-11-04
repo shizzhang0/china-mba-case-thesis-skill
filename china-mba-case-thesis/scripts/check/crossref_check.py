@@ -3,12 +3,14 @@
 做法：逐条解析 GB/T 7714 著录（作者. 题名[类型]. 刊名, 年, 卷(期): 页码.）；条目里有 DOI 的按 DOI 查，
 否则用“题名 + 第一作者”检索，取前 5 条结果比对。
 判定（与 references/成文.md 的核对规则一致：只有完全吻合才算通过）：
-  通过      题名一致，且作者、年、卷、期、页码中能比对的项都一致
+  通过      题名一致，且作者、年、卷、期、页码中能比对的项都一致；Crossref 没有页码和文章编号时注明“页码未比对”
   有出入    题名一致，但有字段不一致：逐项列出 Crossref 的值，回原文 PDF 或出版方页面确认后改著录
   仅相近    没有题名一致的记录，只有相似的：不算通过，人工核对（可能是题名写错，也可能文献不存在）
   未查到    Crossref 没有相近记录：图书、会议论文和部分期刊不在 Crossref，换出版方页面、图书馆目录核对
   跳过      中文文献（题名含汉字）：不在 Crossref 的覆盖范围，按 成文.md 的中文渠道核对
   查询失败  网络或接口错误：稍后重跑，或用 --only 只查这几条
+页码：Crossref 只有文章编号（article-number）没有页码的期刊，著录页码与文章编号不同即判“有出入”，避免“1-17”这类自拟页码被放过。
+第一作者：按“姓在前、缩写名在后”解析，容忍 van、de、El 等姓氏前缀的写法差异；复合姓、中文拼音姓名等仍可能误报“有出入”，以原文为准。
 注意：脚本会把英文文献的题名、第一作者和 DOI 发送给 api.crossref.org；只发这些公开书目信息，不发正文。
 Crossref 建议在请求里附联系邮箱（--mailto，进入其“polite pool”，更稳定）；不给也能用。
 只用标准库。存在“有出入”“仅相近”“未查到”或“查询失败”时退出码为 1。
@@ -38,7 +40,7 @@ def norm(s):
 
 def parse_entry(text):
     """GB/T 7714 著录 → dict(authors, first_family, title, type, journal, year, volume, issue, pages, doi)。解析不出的字段为 None。"""
-    e = dict(raw=text, authors=None, first_family=None, title=None, type=None, journal=None,
+    e = dict(raw=text, authors=None, first_author=None, first_family=None, title=None, type=None, journal=None,
              year=None, volume=None, issue=None, pages=None, doi=None)
     m = DOI_RE.search(text)
     if m:
@@ -57,7 +59,12 @@ def parse_entry(text):
         e['title'] = head.strip()
     if e['authors']:
         first = re.split(r'[,，;]', e['authors'])[0].strip()
-        e['first_family'] = first.split()[0] if first.split() else None
+        e['first_author'] = first or None
+        # 姓在前、缩写名在后（Deming W E；van der Berg J）：去掉末尾的大写缩写，余下的是姓，可能带 van、de、El 等前缀
+        toks = first.split()
+        while len(toks) > 1 and re.fullmatch(r'[A-Z]{1,2}(?:-[A-Z])?\.?', toks[-1]):
+            toks.pop()
+        e['first_family'] = ' '.join(toks) or None
     tail = tail.lstrip('. ')
     if e['type'] == 'J':
         j = tail.split(',')[0].strip()
@@ -94,19 +101,28 @@ def record_fields(item):
     authors = item.get('author') or []
     fam = authors[0].get('family') if authors else None
     return dict(title=title, first_family=fam, year=year, volume=item.get('volume'), issue=item.get('issue'),
-                pages=(item.get('page') or '').replace('–', '-') or None,
+                pages=(item.get('page') or '').replace('–', '-') or None, article_number=item.get('article-number'),
                 journal=' '.join(item.get('container-title') or []) or None, doi=item.get('DOI'),
                 authors='; '.join(' '.join(x for x in (a.get('family'), a.get('given')) if x) for a in authors) or None)
 
 
+def same_family(ours, theirs):
+    """第一作者的姓是否一致。容忍前缀写法差异：van der Berg / Berg、El Amrani / Amrani。"""
+    a, b = norm(ours), norm(theirs)
+    if a == b:
+        return True
+    last = lambda x: norm(x.split()[-1]) if x.split() else ''
+    return bool(last(ours)) and last(ours) == last(theirs)
+
+
 def compare(e, rec):
-    """返回不一致的字段列表 [(字段, 著录值, Crossref 值)]；只比两边都有值的字段。"""
-    diffs = []
+    """返回 (不一致的字段 [(字段, 著录值, Crossref 值)], 未能比对的字段说明 [...])；只比两边都有值的字段。"""
+    diffs, unchecked = [], []
 
     def pair(name, a, b):
         if a and b and norm(a) != norm(b):
             diffs.append((name, a, b))
-    if e['first_family'] and rec['first_family'] and norm(e['first_family']) != norm(rec['first_family']):
+    if e['first_family'] and rec['first_family'] and not same_family(e['first_family'], rec['first_family']):
         diffs.append(('第一作者', e['first_family'], rec['first_family']))
     pair('年', e['year'], rec['year'])
     pair('卷', e['volume'], rec['volume'])
@@ -115,7 +131,13 @@ def compare(e, rec):
         a, b = e['pages'].split('-'), rec['pages'].split('-')
         if norm(a[0]) != norm(b[0]) or (len(a) > 1 and len(b) > 1 and norm(a[-1]) != norm(b[-1])):
             diffs.append(('页码', e['pages'], rec['pages']))
-    return diffs
+    elif e['pages'] and rec.get('article_number'):
+        # 只有文章编号的期刊：著录写成“1-17”这类页码无从核对，不能当作一致
+        if norm(e['pages']) != norm(rec['article_number']):
+            diffs.append(('页码', e['pages'], f'无页码，文章编号 {rec["article_number"]}'))
+    elif e['pages']:
+        unchecked.append('Crossref 无页码和文章编号，页码未比对')
+    return diffs, unchecked
 
 
 def title_score(a, b):
@@ -136,8 +158,9 @@ def judge(e, items):
         return dict(status='未查到', diffs=[], rec=best, score=best_score)
     if best_score < 1.0:
         return dict(status='仅相近', diffs=[], rec=best, score=best_score)
-    diffs = compare(e, best)
-    return dict(status='有出入' if diffs else '通过', diffs=diffs, rec=best, score=best_score)
+    diffs, unchecked = compare(e, best)
+    return dict(status='有出入' if diffs else '通过', diffs=diffs, rec=best, score=best_score,
+                note='；'.join(unchecked) or None)
 
 
 def fetch(url, timeout=20, retries=2):
@@ -208,8 +231,10 @@ def render(rows):
             vol = rec['volume'] or ''
             if rec['issue']:
                 vol += f'({rec["issue"]})'
+            an = rec.get('article_number')
             rec_s = '；'.join(x for x in (rec['title'], rec['authors'], rec['journal'], rec['year'], vol,
-                                         rec['pages'], f'DOI {rec["doi"]}' if rec['doi'] else None) if x)
+                                         rec['pages'], f'文章编号 {an}' if an else None,
+                                         f'DOI {rec["doi"]}' if rec['doi'] else None) if x)
         diffs = '；'.join(f'{f}：著录“{a}”，Crossref“{b}”' for f, a, b in r.get('diffs', []))
         note = '；'.join(x for x in (diffs, r.get('note')) if x)
         L.append(f'| [{r["n"]}] | {cell(r["raw"][:90])} | {r["status"]} | {cell(note)} | {cell(rec_s)} | {cell(r.get("source"))} |')
