@@ -67,4 +67,4 @@ MIT。方法和脚本都可以自由修改使用；用它写出来的论文当�
 
 ---
 
-*A skill for AI agents: a method for drafting case-study MBA theses at Chinese universities, with scripts for Markdown-to-Word generation, figure drawing, sample-thesis statistics and TOC checking. Documentation is in Chinese, as is the thesis format it targets.*
+*A skill for AI agents: a method for drafting case-study MBA theses at Chinese universities, with scripts for Markdown-to-Word generation, figure drawing, sample-thesis statistics, TOC checking and citation/Crossref checking. Documentation is in Chinese, as is the thesis format it targets.*

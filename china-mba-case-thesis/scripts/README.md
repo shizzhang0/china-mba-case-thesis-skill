@@ -2,7 +2,7 @@
 
 都是可选工具：方法论本身不依赖它们，但用它们可以把“单一源稿、整份重建”、快照回退和合稿检查做成固定流程。
 
-全部脚本只需要 **Python 3.8 以上**。Word 生成、快照、文本对比、目录核对只用标准库；画图要 `pip install matplotlib`。
+全部脚本只需要 **Python 3.8 以上**。Word 生成、快照、文本对比、目录核对、引用核对只用标准库；画图要 `pip install matplotlib`。
 
 | 脚本 | 作用 | 依赖 |
 |---|---|---|
@@ -17,6 +17,8 @@
 | `check/docx_text_diff.py` | 两版 docx 按句对比正文文字，确认只有预期改动 | 标准库 |
 | `check/render_pdf.py` | LibreOffice 更新目录后导出 PDF，可出缩略图，抽查版面（页码以 Word 为准） | LibreOffice 及其 Python UNO；缩略图需 poppler 的 pdftoppm |
 | `check/toc_check.py` | 核对 DOCX 目录：条目文字与正文标题是否一致；存在 `lastRenderedPageBreak` 时推算页码，跨页表格自动修正；没有标记时明确报告“页码未验证” | 标准库 |
+| `check/ref_check.py` | 核对源稿角标与参考文献表：缺号、未引用、首次出现顺序、文献表编号与疑似重复条目、疑似漏加上标的 `[n]`；列出每条文献被引的位置和句子，标出只在 `[3-15]` 这类区间里出现的文献，供人工判断引用是否相干。解析规则与 `build_docx.py` 一致 | 标准库 |
+| `check/crossref_check.py` | 把英文文献的题名（有 DOI 的用 DOI）批量送 Crossref，比对第一作者、年、卷、期、页码，输出《参考文献核对清单》初稿：通过 / 有出入 / 仅相近 / 未查到 / 跳过（中文）/ 查询失败。只有完全吻合才算通过。会把题名、第一作者和 DOI 发给 api.crossref.org；需联网 | 标准库 |
 
 ## 平台说明
 
@@ -36,6 +38,7 @@ cd scripts/figures && python3 example_diagram.py && python3 example_datachart.py
 cd ../docx && python3 build_docx.py thesis.config.example.json 示例.docx
 python3 ../check/docx_text_diff.py 示例.docx 示例.docx
 python3 ../snapshot.py ../../example 试跑
+python3 ../check/ref_check.py ../../example/src         # 角标与文献表核对
 ```
 
 示例源稿在 `example/src/`，演示了源稿约定的全部写法。
