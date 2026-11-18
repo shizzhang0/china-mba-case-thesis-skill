@@ -45,7 +45,7 @@
 | 访谈、问卷或数据缺失 | `references/取证.md`；涉及访谈/问卷再读 `references/访谈与问卷.md` |
 | 写章节、看负例或整理理论 | `references/成文.md`、`references/负例与改写示例.md`；按需用 `templates/理论映射表.md` |
 | 生成 Word / 检查目录 | `references/合稿与检查.md`、`scripts/README.md` |
-| 吸收导师意见、提交前检查或披露 AI 使用 | `references/整体审查清单.md`；按学校规定用 `templates/AI使用说明模板.md` |
+| 吸收导师意见、提交前检查或披露 AI 使用 | `references/整体审查清单.md`；逐条改稿用 `templates/修改队列.md`；按学校规定用 `templates/AI使用说明模板.md` |
 | 替别人审稿 | `references/整体审查清单.md` 的“第三方审阅” |
 | 核对角标与英文文献 | `scripts/check/ref_check.py`、`scripts/check/crossref_check.py`（见 `scripts/README.md`） |
 

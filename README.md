@@ -48,7 +48,7 @@ china-mba-case-thesis/  skill 本体
     docx/                 Markdown 源稿 → 学位论文 Word（只用 Python 标准库），学校格式写在配置文件里
     figures/              示意图辅助库与数据图示例（matplotlib），全文统一风格
     check/                文本对比、PDF 版面抽查、目录文字与页码核对
-  templates/            决定日志、主题关系、理论映射、证据台账/缺口决策、导师进度、AI 使用说明、范文分析、章节源稿
+  templates/            决定日志、主题关系、理论映射、证据台账/缺口决策、导师进度、AI 使用说明、范文分析、章节源稿、修改队列
   example/              虚构企业 YT 公司的示例源稿（含一章完整的现状与问题分析）和绘图脚本
 ```
 
